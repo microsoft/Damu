@@ -9,7 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.13.1" />
+    <PackageReference Include="Azure.Search.Documents" Version="11.6.0-beta.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.16.0" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.1.0" />
     <PackageReference Include="Azure.Storage.Queues" Version="12.11.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.21.0" />
@@ -19,7 +20,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>

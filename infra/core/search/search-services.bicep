@@ -1,4 +1,3 @@
-metadata description = 'Creates an Azure AI Search instance.'
 param name string
 param location string = resourceGroup().location
 param tags object = {}
@@ -8,54 +7,30 @@ param sku object = {
 }
 
 param authOptions object = {}
-param disableLocalAuth bool = false
-param disabledDataExfiltrationOptions array = []
-param encryptionWithCmk object = {
-  enforcement: 'Unspecified'
-}
-@allowed([
-  'default'
-  'highDensity'
-])
-param hostingMode string = 'default'
-param networkRuleSet object = {
-  bypass: 'None'
-  ipRules: []
-}
-param partitionCount int = 1
-@allowed([
-  'enabled'
-  'disabled'
-])
-param publicNetworkAccess string = 'enabled'
-param replicaCount int = 1
-@allowed([
-  'disabled'
-  'free'
-  'standard'
-])
 param semanticSearch string = 'disabled'
-
-var searchIdentityProvider = (sku.name == 'free') ? null : {
-  type: 'SystemAssigned'
-}
 
 resource search 'Microsoft.Search/searchServices@2021-04-01-preview' = {
   name: name
   location: location
   tags: tags
-  // The free tier does not support managed identity
-  identity: searchIdentityProvider
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
-    authOptions: disableLocalAuth ? null : authOptions
-    disableLocalAuth: disableLocalAuth
-    disabledDataExfiltrationOptions: disabledDataExfiltrationOptions
-    encryptionWithCmk: encryptionWithCmk
-    hostingMode: hostingMode
-    networkRuleSet: networkRuleSet
-    partitionCount: partitionCount
-    publicNetworkAccess: publicNetworkAccess
-    replicaCount: replicaCount
+    authOptions: authOptions
+    disableLocalAuth: false
+    disabledDataExfiltrationOptions: []
+    encryptionWithCmk: {
+      enforcement: 'Unspecified'
+    }
+    hostingMode: 'default'
+    networkRuleSet: {
+      bypass: 'None'
+      ipRules: []
+    }
+    partitionCount: 1
+    publicNetworkAccess: 'Enabled'
+    replicaCount: 1
     semanticSearch: semanticSearch
   }
   sku: sku
@@ -64,5 +39,5 @@ resource search 'Microsoft.Search/searchServices@2021-04-01-preview' = {
 output id string = search.id
 output endpoint string = 'https://${name}.search.windows.net/'
 output name string = search.name
-output principalId string = !empty(searchIdentityProvider) ? search.identity.principalId : ''
-
+output skuName string = sku.name
+output adminKey string = search.listAdminKeys().primaryKey

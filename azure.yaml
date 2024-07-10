@@ -24,22 +24,11 @@ hooks:
     preprovision:
       windows:
         shell: pwsh
-        run: ./src/sample-app-aoai-chatGPT/scripts/auth_init.ps1
+        run: cd ./src/sample-app-aoai-chatGPT;./scripts/auth_init.ps1;cd ../..
         interactive: true
         continueOnError: false
       posix:
         shell: sh
-        run: ./src/sample-app-aoai-chatGPT/scripts/auth_init.sh
+        run: cd ./src/sample-app-aoai-chatGPT;./scripts/auth_init.sh;cd ../..
         interactive: true
-        continueOnError: false
-    postprovision:
-      windows:
-        shell: pwsh
-        run: ./src/sample-app-aoai-chatGPT/scripts/auth_update.ps1;./scripts/prepdocs.ps1;
-        interactive: true
-        continueOnError: false
-      posix:
-        shell: sh
-        run: ./src/sample-app-aoai-chatGPT/scripts/auth_update.sh;./scripts/prepdocs.sh;
-        interactive: true
-        continueOnError: false
+        continueOnError: false    

@@ -13,13 +13,15 @@ namespace API
         {
             //get FHIR server URL from settings
             var fhirServerUrl = Environment.GetEnvironmentVariable("FHIR_SERVER_URL");
+            Console.WriteLine("FHIR Query: ");
+            Console.WriteLine(fhirServerUrl + query);
+
             using (var client = new HttpClient())
             {
                 //var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await client.GetAsync(fhirServerUrl + query);
                 if (response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine(response.Content.ReadAsStringAsync().Result);
                     return response.Content.ReadAsStringAsync().Result;
                 }
                 else

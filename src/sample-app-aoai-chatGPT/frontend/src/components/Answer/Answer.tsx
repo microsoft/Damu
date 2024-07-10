@@ -2,7 +2,7 @@ import { FormEvent, useContext, useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { nord } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from '@fluentui/react'
+import { CommandBarButton,Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from '@fluentui/react'
 import { useBoolean } from '@fluentui/react-hooks'
 import { ThumbDislike20Filled, ThumbLike20Filled } from '@fluentui/react-icons'
 import DOMPurify from 'dompurify'
@@ -315,6 +315,12 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                         : '1 reference'}
                     </span>
                   </Text>
+                  <CommandBarButton
+      className={styles.exportButtonRoot}
+      iconProps={{ iconName: 'Export' }}
+
+      text="Export"
+    />  
                   <FontIcon
                     className={styles.accordionIcon}
                     onClick={handleChevronClick}

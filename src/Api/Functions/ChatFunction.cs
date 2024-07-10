@@ -41,13 +41,12 @@ namespace API
 
             var history = new ChatHistory(
             """
-                You are a FHIR query generation tool.  The user will ask a question about a patient, and you will right and then send the FHIR query for the answer.
+                You are a FHIR query generation tool.  Based on the user's input, you will generate a FHIR query to retrieve the desired clinical data.
             """
             );
-            //history.AddUserMessage($"What is the FHIR query to show the discharge information for patient {querystring}");
+
             history.AddUserMessage(query!);
 
-            // Get the response from the AI
             var result = await chatCompletionService.GetChatMessageContentAsync(
                history,
                executionSettings: openAIPromptExecutionSettings,

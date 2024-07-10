@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+		<PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.0.0-beta.2" />
     <PackageReference Include="Azure.Search.Documents" Version="11.6.0-beta.1" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.16.0" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.1.0" />

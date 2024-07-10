@@ -1,15 +1,21 @@
 {
   "IsEncrypted": false,
   "Values": {
+    "AzureOpenAiKey": "",
+    "AzureOpenAiEmbeddingDeployedModel": "",
+    "AzureOpenAiEndpoint": "",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "DocIntelApiKey": "",
+    "DocIntelEndPoint": "",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "IncomingBlobConnStr": "",
-    "SEARCH_ENDPOINT": "",
-    "SEARCH_KEY": "",
-    "SEARCH_INDEX_NAME": "",
-    "SEMANTIC_SEARCH_CONFIG_NAME": "",
-    "MODEL_DIMENSIONS": "",
-    "VECTOR_SEARCH_PROFILE_NAME": "",
-    "VECTOR_SEARCH_HNSW_CONFIG_NAME": ""
+    "ModelDimensions": "",
+    "SearchEndpoint": "",
+    "SearchIndexName": "",
+    "SearchKey": "",
+    "SemanticSearchConfigName": "",
+    "VectorSearchHnswConfigName": "",
+    "VectorSearchProfileName": "",
+    "VectorSearchVectorizer": ""
   }
 }

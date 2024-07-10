@@ -10,10 +10,9 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
 using Newtonsoft.Json;
-using System.Reflection.Metadata;
 using Tiktoken;
 
-namespace Api;
+namespace Api.Functions;
 
 public class IndexUpserter
 {
@@ -37,47 +36,36 @@ public class IndexUpserter
     [Function(nameof(IndexUpserter))]
     public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] Stream stream, string name)
     {
-        try
+        using var blobStreamReader = new StreamReader(stream);
+
+        var content = await blobStreamReader.ReadToEndAsync();
+
+        _logger.LogInformation("Creating/updating index...");
+
+        await CreateOrUpdateIndexAsync();
+
+        var jsonReader = new JsonTextReader(new StringReader(content))
         {
-            using var blobStreamReader = new StreamReader(stream);
+            SupportMultipleContent = true
+        };
 
-            var content = await blobStreamReader.ReadToEndAsync();
+        var jsonSerializer = new JsonSerializer();
 
-            _logger.LogInformation($"C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}");
+        List<SourceNoteRecord> inputDocuments = [];
 
-            // testing 
-            await DeleteIndexAsync();
-
-            await CreateIndexAsync();
-
-            var jsonReader = new JsonTextReader(new StringReader(content))
-            {
-                SupportMultipleContent = true
-            };
-
-            var jsonSerializer = new JsonSerializer();
-
-            List<SourceNoteRecord> inputDocuments = [];
-
-            while (jsonReader.Read())
-            {
-                SourceNoteRecord foo = jsonSerializer.Deserialize<SourceNoteRecord>(jsonReader) ?? new();
-                inputDocuments.Add(foo);
-            }
-
-            await LoadIndexAsync(inputDocuments);
-        }
-        catch (Exception ex)
+        while (jsonReader.Read())
         {
-            Console.WriteLine(ex.Message);
-            throw;
+            SourceNoteRecord foo = jsonSerializer.Deserialize<SourceNoteRecord>(jsonReader) ?? new();
+            inputDocuments.Add(foo);
         }
+
+        _logger.LogInformation($"Parsed out {inputDocuments.Count} note records to analyze for loading.");
+
+        await LoadIndexAsync(inputDocuments);
     }
 
-    private async Task CreateIndexAsync()
+    private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
     {
-        Console.WriteLine("Creating (or updating) search index");
-
         SearchIndex index = new(_functionSettings.SearchIndexName)
         {
             VectorSearch = new()
@@ -153,9 +141,7 @@ public class IndexUpserter
             }
         };
 
-        var result = await _searchIndexClient.CreateOrUpdateIndexAsync(index);
-
-        Console.WriteLine(result);
+        return await _searchIndexClient.CreateOrUpdateIndexAsync(index);
     }
 
     private async Task LoadIndexAsync(List<SourceNoteRecord> inputDocuments)
@@ -164,8 +150,6 @@ public class IndexUpserter
 
         foreach (var document in inputDocuments)
         {
-            Console.WriteLine(document);
-
             List<SearchDocument> newSearchDocs = [];
 
             var content = !string.IsNullOrWhiteSpace(document.NoteInHtml) ? document.NoteInHtml : string.Empty;
@@ -188,26 +172,23 @@ public class IndexUpserter
 
         try
         {
-            await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments));
+            var opts = new IndexDocumentsOptions
+            {
+                ThrowOnAnyError = true
+            };
+
+            _logger.LogInformation($"Loading {sampleDocuments.Count} index records to index...");
+
+            await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
         }
-        catch (Exception ex)
+        catch (AggregateException aggregateException)
         {
-            Console.WriteLine(ex.Message);
-            throw;
+            _logger.LogError("Partial failures detected. Some documents failed to index.");
+            foreach (var exception in aggregateException.InnerExceptions)
+            {
+                _logger.LogError(exception.Message);
+            }
         }
-    }
-
-    private async Task<SearchDocument> ConvertToSearchDocumentAsync(SourceNoteRecord sourceNote)
-    {
-        var dictionary = sourceNote.ToDictionary();
-
-        var content = !string.IsNullOrWhiteSpace(sourceNote.NoteInHtml) ? sourceNote.NoteInHtml : string.Empty;
-
-        dictionary["NoteChunkVector"] = await GenerateEmbeddingAsync(content);
-
-        var document = new SearchDocument(dictionary);
-
-        return document;
     }
 
     private async Task<List<SearchDocument>> RecursivelySplitNoteContent(SourceNoteRecord sourceNote)
@@ -229,33 +210,38 @@ public class IndexUpserter
         // with markdown
         var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Markdown);
         var chunkerOverlapTokens = Convert.ToInt32(_functionSettings.ChunkOverlapPercent * _functionSettings.MaxChunkSize);
-        var lines = TextChunker.SplitMarkDownLines(analysis.Value.Content, _functionSettings.MaxChunkSize);
-        var paragraphs = TextChunker.SplitMarkdownParagraphs(lines, _functionSettings.MaxChunkSize, chunkerOverlapTokens);
+        var lines = TextChunker.SplitMarkDownLines(analysis.Value.Content, _functionSettings.MaxChunkSize, tokenCounter: GetTokenCount);
+        var paragraphs = TextChunker.SplitMarkdownParagraphs(lines, _functionSettings.MaxChunkSize, chunkerOverlapTokens, tokenCounter: GetTokenCount);
 
         var results = new List<SearchDocument>();
 
-        for (var i = 0; i < paragraphs.Count; i++)
+        foreach (var (p, i) in paragraphs.Select((p, i) => (p, i)))
         {
-            var p = paragraphs[i];
-            var split = new SourceNoteRecord(sourceNote);
+            var searchDoc = await ConvertToSearchDocumentAsync(new SourceNoteRecord(sourceNote), p, i);
 
-            split.NoteChunk = p;
-            split.NoteChunkOrder = i;
-
-            var searchDoc = await ConvertToSearchDocumentAsync(split);
             results.Add(searchDoc);
         }
 
         return results;
     }
 
-    private int GetTokenCount(string text)
+    private async Task<SearchDocument> ConvertToSearchDocumentAsync(SourceNoteRecord sourceNote, string? chunk = null, int? chunkOrder = null)
     {
-        var encoder = ModelToEncoder.For(_functionSettings.AzureOpenAiEmbeddingModel);
+        if (!string.IsNullOrWhiteSpace(chunk))
+            sourceNote.NoteChunk = chunk;
 
-        return encoder.CountTokens(text);
+        if (chunkOrder != null)
+            sourceNote.NoteChunkOrder = chunkOrder;
+
+        var dictionary = sourceNote.ToDictionary();
+
+        if (!string.IsNullOrWhiteSpace(sourceNote.NoteChunk))
+            dictionary["NoteChunkVector"] = await GenerateEmbeddingAsync(sourceNote.NoteChunk);
+
+        var document = new SearchDocument(dictionary);
+
+        return document;
     }
-
     private async Task<IReadOnlyList<float>> GenerateEmbeddingAsync(string text)
     {
         var response = await _openAIClient.GetEmbeddingsAsync(_functionSettings.AzureOpenAiEmbeddingDeployement, new EmbeddingsOptions(text));
@@ -263,12 +249,11 @@ public class IndexUpserter
         return response.Value.Data[0].Embedding;
     }
 
-    // for testing
-    private async Task DeleteIndexAsync()
+    private int GetTokenCount(string text)
     {
-        Console.WriteLine("Deleting search index");
+        var encoder = ModelToEncoder.For(_functionSettings.AzureOpenAiEmbeddingModel);
 
-        await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
+        return encoder.CountTokens(text);
     }
 }
 #pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

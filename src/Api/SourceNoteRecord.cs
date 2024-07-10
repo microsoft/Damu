@@ -3,15 +3,14 @@
 internal class SourceNoteRecord
 {
     public SourceNoteRecord() { }
-    public SourceNoteRecord(SourceNoteRecord original)
+    public SourceNoteRecord(SourceNoteRecord original, string? chunk = null, int? chunkIndex = null)
     {
-        IndexRecordId = original.IndexRecordId;
         NoteId = original.NoteId;
         NoteContent = original.NoteContent;
         NoteInHtml = original.NoteInHtml;
         NoteInText = original.NoteInText;
-        NoteChunk = original.NoteChunk;
-        NoteChunkOrder = original.NoteChunkOrder;
+        NoteChunk = string.IsNullOrWhiteSpace(chunk) ? original.NoteChunk : chunk;
+        NoteChunkOrder = chunkIndex == null ? original.NoteChunkOrder : chunkIndex;
         NoteChunkVector = original.NoteChunkVector;
         CSN = original.CSN;
         MRN = original.MRN;

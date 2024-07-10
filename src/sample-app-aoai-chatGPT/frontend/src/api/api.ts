@@ -2,8 +2,9 @@ import { chatHistorySampleData } from '../constants/chatHistory'
 
 import { ChatMessage, Conversation, ConversationRequest, CosmosDBHealth, CosmosDBStatus, UserInfo } from './models'
 
+// TODO: This is where we will redirect to the Azure Function instead of existing backend for chat response
 export async function conversationApi(options: ConversationRequest, abortSignal: AbortSignal): Promise<Response> {
-  const response = await fetch('/conversation', {
+  const response = await fetch('/conversation', { 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

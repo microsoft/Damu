@@ -20,15 +20,3 @@ services:
           run:  cd ./src/sample-app-aoai-chatGPT/frontend;npm install;npm run build
           interactive: true
           continueOnError: false
-hooks:
-    preprovision:
-      windows:
-        shell: pwsh
-        run: cd ./src/sample-app-aoai-chatGPT;./scripts/auth_init.ps1;cd ../..
-        interactive: true
-        continueOnError: false
-      posix:
-        shell: sh
-        run: cd ./src/sample-app-aoai-chatGPT;./scripts/auth_init.sh;cd ../..
-        interactive: true
-        continueOnError: false    

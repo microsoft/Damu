@@ -42,12 +42,6 @@ param openAIStream bool = true
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
 
-// Used by prepdocs.py: Form recognizer
-param formRecognizerServiceName string = ''
-param formRecognizerResourceGroupName string = ''
-param formRecognizerResourceGroupLocation string = location
-param formRecognizerSkuName string = ''
-
 // Used for the Azure AD application
 param authClientId string
 @secure()
@@ -200,7 +194,7 @@ module cosmos 'db.bicep' = {
   scope: resourceGroup
   params: {
     accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
-    location: 'eastus'
+    location: location
     tags: tags
     principalIds: [principalId, backend.outputs.identityPrincipalId]
   }
@@ -269,21 +263,6 @@ module searchRoleBackend 'core/security/role.bicep' = {
   }
 }
 
-// For doc prep
-module docPrepResources 'docprep.bicep' = {
-  name: 'docprep-resources${resourceToken}'
-  params: {
-    location: location
-    resourceToken: resourceToken
-    tags: tags
-    principalId: principalId
-    resourceGroupName: resourceGroup.name
-    formRecognizerServiceName: formRecognizerServiceName
-    formRecognizerResourceGroupName: formRecognizerResourceGroupName
-    formRecognizerResourceGroupLocation: formRecognizerResourceGroupLocation
-    formRecognizerSkuName: !empty(formRecognizerSkuName) ? formRecognizerSkuName : 'S0'
-  }
-}
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
@@ -313,18 +292,13 @@ output AZURE_OPENAI_MODEL string = openAIModel
 output AZURE_OPENAI_MODEL_NAME string = openAIModelName
 output AZURE_OPENAI_SKU_NAME string = openAi.outputs.skuName
 output AZURE_OPENAI_KEY string = openAi.outputs.key
-output AZURE_OPENAI_EMBEDDING_NAME string = '${embeddingDeploymentName}'
+output AZURE_OPENAI_EMBEDDING_NAME string = embeddingDeploymentName
 output AZURE_OPENAI_TEMPERATURE int = openAITemperature
 output AZURE_OPENAI_TOP_P int = openAITopP
 output AZURE_OPENAI_MAX_TOKENS int = openAIMaxTokens
 output AZURE_OPENAI_STOP_SEQUENCE string = openAIStopSequence
 output AZURE_OPENAI_SYSTEM_MESSAGE string = openAISystemMessage
 output AZURE_OPENAI_STREAM bool = openAIStream
-
-// Used by prepdocs.py:
-output AZURE_FORMRECOGNIZER_SERVICE string = docPrepResources.outputs.AZURE_FORMRECOGNIZER_SERVICE
-output AZURE_FORMRECOGNIZER_RESOURCE_GROUP string = docPrepResources.outputs.AZURE_FORMRECOGNIZER_RESOURCE_GROUP
-output AZURE_FORMRECOGNIZER_SKU_NAME string = docPrepResources.outputs.AZURE_FORMRECOGNIZER_SKU_NAME
 
 // cosmos
 output AZURE_COSMOSDB_ACCOUNT string = cosmos.outputs.accountName

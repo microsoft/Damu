@@ -12,8 +12,8 @@
         SearchIndexName = $"-index";
         SemanticSearchConfigName = $"-semantic-config";
         VectorSearchHnswConfigName = $"-hnsw-config";
-        VectorSearchProfileName = $"semantic-profile";
-        VectorSearchVectorizer = $"search-vectorizer";
+        VectorSearchProfileName = $"-semantic-profile";
+        VectorSearchVectorizer = $"-search-vectorizer";
 
         var docIntelEndPoint = string.IsNullOrWhiteSpace(envVars["DocIntelEndPoint"]?.ToString()) ? throw new NullReferenceException("DocIntelEndPoint") : envVars["DocIntelEndPoint"]?.ToString()!; ;
 

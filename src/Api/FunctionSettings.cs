@@ -6,14 +6,24 @@
 
         AzureOpenAiEmbeddingDeployement = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployement") : envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
+        
+        NoteJsonFileName = string.IsNullOrWhiteSpace(envVars["NoteJsonFileName"]?.ToString()) ? throw new NullReferenceException("NoteJsonFileName") : envVars["NoteJsonFileName"]?.ToString()!;
 
         var prefix = string.IsNullOrWhiteSpace(envVars["ProjectPrefix"]?.ToString()) ? "damu" : envVars["ProjectPrefix"]?.ToString();
-        
+
         SearchIndexName = $"-index";
         SemanticSearchConfigName = $"-semantic-config";
         VectorSearchHnswConfigName = $"-hnsw-config";
         VectorSearchProfileName = $"-semantic-profile";
         VectorSearchVectorizer = $"-search-vectorizer";
+
+#pragma warning disable CS8601 // Possible null reference assignment.
+        // VS doesn't understand that the exception means that there will never be a null reference here
+        BlobStorageConnStr = string.IsNullOrWhiteSpace(envVars["IncomingBlobConnStr"]?.ToString()) ? throw new NullReferenceException("IncomingBlobConnStr") : envVars["IncomingBlobConnStr"]?.ToString()!; ;
+        //var blobStorageEndpoint = string.IsNullOrWhiteSpace(envVars["IncomingBlobConnStr"]?.ToString()) ? throw new NullReferenceException("IncomingBlobConnStr") : envVars["IncomingBlobConnStr"]?.ToString()!; ;
+
+        //if (!Uri.TryCreate(blobStorageEndpoint, UriKind.Absolute, out BlobStorageConnStr))
+        //    throw new ArgumentException($"BlobStorageConnStr {BlobStorageConnStr} is not a valid URI.");
 
         var docIntelEndPoint = string.IsNullOrWhiteSpace(envVars["DocIntelEndPoint"]?.ToString()) ? throw new NullReferenceException("DocIntelEndPoint") : envVars["DocIntelEndPoint"]?.ToString()!; ;
 
@@ -29,6 +39,7 @@
 
         if (!Uri.TryCreate(searchEndpoint, UriKind.Absolute, out SearchEndpoint))
             throw new ArgumentException($"SearchEndpoint {searchEndpoint} is not a valid URI.");
+#pragma warning restore CS8601 // Possible null reference assignment.
 
         ArgumentNullException.ThrowIfNull(envVars["ModelDimensions"]);
 
@@ -46,6 +57,10 @@
         if (int.TryParse(envVars["MaxChunkSize"]?.ToString(), out int maxChunkSize))
             MaxChunkSize = maxChunkSize!;
     }
+
+    public readonly string BlobStorageConnStr;
+    //public readonly Uri BlobStorageConnStr;
+    public readonly string NoteJsonFileName;
 
     public readonly Uri AzureOpenAiEndpoint;
     public readonly string AzureOpenAiEmbeddingDeployement;

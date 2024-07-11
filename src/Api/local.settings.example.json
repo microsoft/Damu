@@ -9,6 +9,7 @@
     "IncomingBlobConnStr": "",
     "ModelDimensions": "",
     "SearchEndpoint": "",
-    "ProjectPrefix": "damu"
+    "ProjectPrefix": "damu",
+    "NoteJsonFileName": "" // expects ndjson format
   }
 }

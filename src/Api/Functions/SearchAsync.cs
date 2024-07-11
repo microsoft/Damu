@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Api.Functions;
 
-public class SearchAsync
+public partial class SearchAsync
 {
     private readonly FunctionSettings _functionSettings;
     private readonly ILogger<SearchAsync> _logger;
@@ -45,6 +45,9 @@ public class SearchAsync
                 Console.WriteLine($"First Caption Text: {firstCaption.Text}");
             }
         }
+
+        // streaming response
+        // tool message with citations first
 
         return new OkObjectResult("Welcome to Azure Functions!");
     }

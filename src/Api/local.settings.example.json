@@ -9,10 +9,6 @@
     "IncomingBlobConnStr": "",
     "ModelDimensions": "",
     "SearchEndpoint": "",
-    "SearchIndexName": "",
-    "SemanticSearchConfigName": "",
-    "VectorSearchHnswConfigName": "",
-    "VectorSearchProfileName": "",
-    "VectorSearchVectorizer": ""
+    "ProjectPrefix": "damu"
   }
 }

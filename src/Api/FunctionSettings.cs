@@ -6,11 +6,14 @@
 
         AzureOpenAiEmbeddingDeployement = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployement") : envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
-        SearchIndexName = string.IsNullOrWhiteSpace(envVars["SearchIndexName"]?.ToString()) ? throw new NullReferenceException("SearchIndexName") : envVars["SearchIndexName"]?.ToString()!;
-        SemanticSearchConfigName = string.IsNullOrWhiteSpace(envVars["SemanticSearchConfigName"]?.ToString()) ? throw new NullReferenceException("SemanticSearchConfigName") : envVars["SemanticSearchConfigName"]?.ToString()!;
-        VectorSearchHnswConfigName = string.IsNullOrWhiteSpace(envVars["VectorSearchHnswConfigName"]?.ToString()) ? throw new NullReferenceException("VectorSearchHnswConfigName") : envVars["VectorSearchHnswConfigName"]?.ToString()!;
-        VectorSearchProfileName = string.IsNullOrWhiteSpace(envVars["VectorSearchProfileName"]?.ToString()) ? throw new NullReferenceException("VectorSearchProfileName") : envVars["VectorSearchProfileName"]?.ToString()!;
-        VectorSearchVectorizer = string.IsNullOrWhiteSpace(envVars["VectorSearchVectorizer"]?.ToString()) ? throw new NullReferenceException("VectorSearchVectorizer") : envVars["VectorSearchVectorizer"]?.ToString()!;
+
+        var prefix = string.IsNullOrWhiteSpace(envVars["ProjectPrefix"]?.ToString()) ? "damu" : envVars["ProjectPrefix"]?.ToString();
+        
+        SearchIndexName = $"-index";
+        SemanticSearchConfigName = $"-semantic-config";
+        VectorSearchHnswConfigName = $"-hnsw-config";
+        VectorSearchProfileName = $"semantic-profile";
+        VectorSearchVectorizer = $"search-vectorizer";
 
         var docIntelEndPoint = string.IsNullOrWhiteSpace(envVars["DocIntelEndPoint"]?.ToString()) ? throw new NullReferenceException("DocIntelEndPoint") : envVars["DocIntelEndPoint"]?.ToString()!; ;
 
@@ -45,11 +48,9 @@
     }
 
     public readonly Uri AzureOpenAiEndpoint;
-    //public readonly string AzureOpenAiKey;
     public readonly string AzureOpenAiEmbeddingDeployement;
     public readonly string AzureOpenAiEmbeddingModel;
 
-    //public readonly string DocIntelApiKey;
     public readonly Uri DocIntelEndPoint;
 
     public int MaxChunkSize = 512;
@@ -57,7 +58,6 @@
 
     public readonly Uri SearchEndpoint;
     public readonly string SearchIndexName;
-    //public readonly string SearchKey;
     public readonly string SemanticSearchConfigName;
     public readonly int ModelDimensions;
     public readonly string VectorSearchHnswConfigName;

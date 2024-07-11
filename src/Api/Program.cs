@@ -1,3 +1,4 @@
+using API;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
 using Azure.Identity;
@@ -46,6 +47,9 @@ var host = new HostBuilder()
                 settings.SearchEndpoint,
                  new DefaultAzureCredential());
         });
+
+        services.AddHttpClient(); // Registers IHttpClientFactory and allows you to use HttpClient
+        services.AddSingleton<QueryFhirPlugin>();
     })
     .Build();
 

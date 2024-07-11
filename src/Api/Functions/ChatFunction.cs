@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -25,15 +26,20 @@ namespace API
             var data = JsonSerializer.Deserialize<Dictionary<string, string>>(requestBody);
             var query = data?["query"];
 
-            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            _logger.LogInformation("Processing FHIR request");
             var modelId = Environment.GetEnvironmentVariable("AzureOpenAiChatDeployedModel")!;
             var endpoint = Environment.GetEnvironmentVariable("AzureOpenAiEndpoint")!;
             var apiKey = Environment.GetEnvironmentVariable("AzureOpenAiKey")!;
+            
             var builder = Kernel.CreateBuilder().AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey);
+            builder.Services.AddHttpClient();
+            builder.Plugins.AddFromType<QueryFhirPlugin>("FHIR");
 
             Kernel kernel = builder.Build();
             var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-            kernel.Plugins.AddFromType<QueryFhirPlugin>("FHIR");
+            
+
+
             OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
             {
                 ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions

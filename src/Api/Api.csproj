@@ -9,7 +9,6 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-		<None Include="local.settings.json" />
 		<PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.0.0-beta.2" />
 		<PackageReference Include="Azure.Search.Documents" Version="11.6.0-beta.1" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.20.0" />
@@ -25,7 +24,6 @@
 		<PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.4" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
 		<PackageReference Include="Microsoft.SemanticKernel" Version="1.15.1" />
-		<PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.15.1-alpha" />
 		<PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.15.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.17" />

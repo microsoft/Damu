@@ -43,6 +43,8 @@ public class FetchNote
         if (blobDownloadResult.Value.Content == null)
             throw new Exception($"Unable to retrieve valid content from {_functionSettings.NoteJsonFileName} in storage.");
 
+        List<SourceNoteRecord> notes = [];
+
         var contentStream = blobDownloadResult.Value.Content.ToStream();
 
         var notes = DeserializeNdJson<SourceNoteRecord>(contentStream) ?? [];
@@ -61,7 +63,7 @@ public class FetchNote
         List<T> results = [];
 
         while (textReader.Peek() >= 0)
-        {
+    {
             var line = textReader.ReadLine();
 
             if (string.IsNullOrWhiteSpace(line))

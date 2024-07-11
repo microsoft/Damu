@@ -4,16 +4,26 @@
     {
         var envVars = Environment.GetEnvironmentVariables();
 
-        AzureOpenAiKey = string.IsNullOrWhiteSpace(envVars["AzureOpenAiKey"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiKey") : envVars["AzureOpenAiKey"]?.ToString()!;
         AzureOpenAiEmbeddingDeployement = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployement") : envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
-        DocIntelApiKey = string.IsNullOrWhiteSpace(envVars["DocIntelApiKey"]?.ToString()) ? throw new NullReferenceException("DocIntelApiKey") : envVars["DocIntelApiKey"]?.ToString()!;
-        SearchIndexName = string.IsNullOrWhiteSpace(envVars["SearchIndexName"]?.ToString()) ? throw new NullReferenceException("SearchIndexName") : envVars["SearchIndexName"]?.ToString()!;
-        SearchKey = string.IsNullOrWhiteSpace(envVars["SearchKey"]?.ToString()) ? throw new NullReferenceException("SearchKey") : envVars["SearchKey"]?.ToString()!; ;
-        SemanticSearchConfigName = string.IsNullOrWhiteSpace(envVars["SemanticSearchConfigName"]?.ToString()) ? throw new NullReferenceException("SemanticSearchConfigName") : envVars["SemanticSearchConfigName"]?.ToString()!;
-        VectorSearchHnswConfigName = string.IsNullOrWhiteSpace(envVars["VectorSearchHnswConfigName"]?.ToString()) ? throw new NullReferenceException("VectorSearchHnswConfigName") : envVars["VectorSearchHnswConfigName"]?.ToString()!;
-        VectorSearchProfileName = string.IsNullOrWhiteSpace(envVars["VectorSearchProfileName"]?.ToString()) ? throw new NullReferenceException("VectorSearchProfileName") : envVars["VectorSearchProfileName"]?.ToString()!;
-        VectorSearchVectorizer = string.IsNullOrWhiteSpace(envVars["VectorSearchVectorizer"]?.ToString()) ? throw new NullReferenceException("VectorSearchVectorizer") : envVars["VectorSearchVectorizer"]?.ToString()!;
+        
+        NoteJsonFileName = string.IsNullOrWhiteSpace(envVars["NoteJsonFileName"]?.ToString()) ? throw new NullReferenceException("NoteJsonFileName") : envVars["NoteJsonFileName"]?.ToString()!;
+
+        var prefix = string.IsNullOrWhiteSpace(envVars["ProjectPrefix"]?.ToString()) ? "damu" : envVars["ProjectPrefix"]?.ToString();
+
+        SearchIndexName = $"-index";
+        SemanticSearchConfigName = $"-semantic-config";
+        VectorSearchHnswConfigName = $"-hnsw-config";
+        VectorSearchProfileName = $"-semantic-profile";
+        VectorSearchVectorizer = $"-search-vectorizer";
+
+#pragma warning disable CS8601 // Possible null reference assignment.
+        // VS doesn't understand that the exception means that there will never be a null reference here
+        BlobStorageConnStr = string.IsNullOrWhiteSpace(envVars["IncomingBlobConnStr"]?.ToString()) ? throw new NullReferenceException("IncomingBlobConnStr") : envVars["IncomingBlobConnStr"]?.ToString()!; ;
+        //var blobStorageEndpoint = string.IsNullOrWhiteSpace(envVars["IncomingBlobConnStr"]?.ToString()) ? throw new NullReferenceException("IncomingBlobConnStr") : envVars["IncomingBlobConnStr"]?.ToString()!; ;
+
+        //if (!Uri.TryCreate(blobStorageEndpoint, UriKind.Absolute, out BlobStorageConnStr))
+        //    throw new ArgumentException($"BlobStorageConnStr {BlobStorageConnStr} is not a valid URI.");
 
         var docIntelEndPoint = string.IsNullOrWhiteSpace(envVars["DocIntelEndPoint"]?.ToString()) ? throw new NullReferenceException("DocIntelEndPoint") : envVars["DocIntelEndPoint"]?.ToString()!; ;
 
@@ -29,6 +39,7 @@
 
         if (!Uri.TryCreate(searchEndpoint, UriKind.Absolute, out SearchEndpoint))
             throw new ArgumentException($"SearchEndpoint {searchEndpoint} is not a valid URI.");
+#pragma warning restore CS8601 // Possible null reference assignment.
 
         ArgumentNullException.ThrowIfNull(envVars["ModelDimensions"]);
 
@@ -47,12 +58,14 @@
             MaxChunkSize = maxChunkSize!;
     }
 
+    public readonly string BlobStorageConnStr;
+    //public readonly Uri BlobStorageConnStr;
+    public readonly string NoteJsonFileName;
+
     public readonly Uri AzureOpenAiEndpoint;
-    public readonly string AzureOpenAiKey;
     public readonly string AzureOpenAiEmbeddingDeployement;
     public readonly string AzureOpenAiEmbeddingModel;
 
-    public readonly string DocIntelApiKey;
     public readonly Uri DocIntelEndPoint;
 
     public int MaxChunkSize = 512;
@@ -60,7 +73,6 @@
 
     public readonly Uri SearchEndpoint;
     public readonly string SearchIndexName;
-    public readonly string SearchKey;
     public readonly string SemanticSearchConfigName;
     public readonly int ModelDimensions;
     public readonly string VectorSearchHnswConfigName;

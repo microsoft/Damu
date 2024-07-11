@@ -43,7 +43,7 @@ public class FetchNote
         if (blobDownloadResult.Value.Content == null)
             throw new Exception($"Unable to retrieve valid content from {_functionSettings.NoteJsonFileName} in storage.");
 
-        List<SourceNoteRecord> notes = [];
+       //List<SourceNoteRecord> notes = [];
 
         var contentStream = blobDownloadResult.Value.Content.ToStream();
 

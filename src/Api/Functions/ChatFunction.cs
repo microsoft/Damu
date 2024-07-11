@@ -52,7 +52,6 @@ namespace API
                executionSettings: openAIPromptExecutionSettings,
                kernel: kernel);
 
-
             return new OkObjectResult(result);
         }
     }

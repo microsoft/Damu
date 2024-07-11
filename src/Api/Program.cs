@@ -1,10 +1,10 @@
 using API;
+using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
-using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,32 +20,33 @@ var host = new HostBuilder()
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
-            return new DocumentIntelligenceClient(
-                settings.DocIntelEndPoint,
-                new DefaultAzureCredential());
+            return string.IsNullOrWhiteSpace(settings.DocIntelKey)
+            ? new DocumentIntelligenceClient(settings.DocIntelEndPoint, new DefaultAzureCredential())
+            : new DocumentIntelligenceClient(settings.DocIntelEndPoint, new AzureKeyCredential(settings.DocIntelKey));
         });
         services.AddTransient(services =>
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
-            return new OpenAIClient(settings.AzureOpenAiEndpoint, new DefaultAzureCredential()); //AzureKeyCredential settings.AzureOpenAiKey
+            return string.IsNullOrWhiteSpace(settings.AzureOpenAiKey)
+            ? new OpenAIClient(settings.AzureOpenAiEndpoint, new DefaultAzureCredential())
+            : new OpenAIClient(settings.AzureOpenAiEndpoint, new AzureKeyCredential(settings.AzureOpenAiKey));
         });
         services.AddTransient(services =>
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
-            return new SearchClient(
-                settings.SearchEndpoint,
-                settings.SearchIndexName,
-                new DefaultAzureCredential()); // todo: move to managed identity
+            return string.IsNullOrWhiteSpace(settings.SearchKey)
+            ? new SearchClient(settings.SearchEndpoint, settings.SearchIndexName, new DefaultAzureCredential())
+            : new SearchClient(settings.SearchEndpoint, settings.SearchIndexName, new AzureKeyCredential(settings.SearchKey));
         });
         services.AddTransient(services =>
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
-            return new SearchIndexClient(
-                settings.SearchEndpoint,
-                 new DefaultAzureCredential());
+            return string.IsNullOrWhiteSpace(settings.SearchKey)
+            ? new SearchIndexClient(settings.SearchEndpoint, new DefaultAzureCredential())
+            : new SearchIndexClient(settings.SearchEndpoint, new AzureKeyCredential(settings.SearchKey));
         });
 
         services.AddHttpClient(); // Registers IHttpClientFactory and allows you to use HttpClient

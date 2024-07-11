@@ -1,6 +1,7 @@
-using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
+using Azure.Core;
+using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Microsoft.Azure.Functions.Worker;
@@ -20,13 +21,13 @@ var host = new HostBuilder()
 
             return new DocumentIntelligenceClient(
                 settings.DocIntelEndPoint,
-                new AzureKeyCredential(settings.DocIntelApiKey));
+                new DefaultAzureCredential());
         });
         services.AddTransient(services =>
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
-            return new OpenAIClient(settings.AzureOpenAiEndpoint, new AzureKeyCredential(settings.AzureOpenAiKey));
+            return new OpenAIClient(settings.AzureOpenAiEndpoint, new DefaultAzureCredential()); //AzureKeyCredential settings.AzureOpenAiKey
         });
         services.AddTransient(services =>
         {
@@ -35,7 +36,7 @@ var host = new HostBuilder()
             return new SearchClient(
                 settings.SearchEndpoint,
                 settings.SearchIndexName,
-                new AzureKeyCredential(settings.SearchKey)); // todo: move to managed identity
+                new DefaultAzureCredential()); // todo: move to managed identity
         });
         services.AddTransient(services =>
         {
@@ -43,7 +44,7 @@ var host = new HostBuilder()
 
             return new SearchIndexClient(
                 settings.SearchEndpoint,
-                new AzureKeyCredential(settings.SearchKey));
+                 new DefaultAzureCredential());
         });
     })
     .Build();

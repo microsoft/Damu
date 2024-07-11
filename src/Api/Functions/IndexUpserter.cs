@@ -85,7 +85,6 @@ public class IndexUpserter
                             AzureOpenAIParameters = new AzureOpenAIParameters()
                             {
                                 ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-                                ApiKey = _functionSettings.AzureOpenAiKey,
                                 DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement,
                             }
                         }
@@ -101,7 +100,6 @@ public class IndexUpserter
                         {
                             ContentFields =
                             {
-                                // title
                                 new SemanticField("NoteChunk")
                             }
                         })
@@ -122,8 +120,6 @@ public class IndexUpserter
                     VectorSearchDimensions = _functionSettings.ModelDimensions,
                     VectorSearchProfileName = _functionSettings.VectorSearchProfileName
                 },
-
-                // todo: potentially scrape <h1> tag as title field
 
                 // good to have fields for contstructing with fhir query results
                 new SearchField("CSN", SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true },
@@ -200,12 +196,6 @@ public class IndexUpserter
         {
             Base64Source = BinaryData.FromString(sourceNote.NoteInHtml)
         };
-
-        // with plain text
-        //var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Text);
-        //var chunkerOverlapTokens = Convert.ToInt32(_functionSettings.ChunkOverlapPercent * _functionSettings.MaxChunkSize);
-        //var lines = TextChunker.SplitPlainTextLines(analysis.Value.Content, _functionSettings.MaxChunkSize);
-        //var paragraphs = TextChunker.SplitPlainTextParagraphs(lines, _functionSettings.MaxChunkSize, chunkerOverlapTokens);
 
         // with markdown
         var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Markdown);

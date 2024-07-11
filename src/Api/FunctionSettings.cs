@@ -4,12 +4,9 @@
     {
         var envVars = Environment.GetEnvironmentVariables();
 
-        AzureOpenAiKey = string.IsNullOrWhiteSpace(envVars["AzureOpenAiKey"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiKey") : envVars["AzureOpenAiKey"]?.ToString()!;
         AzureOpenAiEmbeddingDeployement = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployement") : envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
-        DocIntelApiKey = string.IsNullOrWhiteSpace(envVars["DocIntelApiKey"]?.ToString()) ? throw new NullReferenceException("DocIntelApiKey") : envVars["DocIntelApiKey"]?.ToString()!;
         SearchIndexName = string.IsNullOrWhiteSpace(envVars["SearchIndexName"]?.ToString()) ? throw new NullReferenceException("SearchIndexName") : envVars["SearchIndexName"]?.ToString()!;
-        SearchKey = string.IsNullOrWhiteSpace(envVars["SearchKey"]?.ToString()) ? throw new NullReferenceException("SearchKey") : envVars["SearchKey"]?.ToString()!; ;
         SemanticSearchConfigName = string.IsNullOrWhiteSpace(envVars["SemanticSearchConfigName"]?.ToString()) ? throw new NullReferenceException("SemanticSearchConfigName") : envVars["SemanticSearchConfigName"]?.ToString()!;
         VectorSearchHnswConfigName = string.IsNullOrWhiteSpace(envVars["VectorSearchHnswConfigName"]?.ToString()) ? throw new NullReferenceException("VectorSearchHnswConfigName") : envVars["VectorSearchHnswConfigName"]?.ToString()!;
         VectorSearchProfileName = string.IsNullOrWhiteSpace(envVars["VectorSearchProfileName"]?.ToString()) ? throw new NullReferenceException("VectorSearchProfileName") : envVars["VectorSearchProfileName"]?.ToString()!;
@@ -48,11 +45,11 @@
     }
 
     public readonly Uri AzureOpenAiEndpoint;
-    public readonly string AzureOpenAiKey;
+    //public readonly string AzureOpenAiKey;
     public readonly string AzureOpenAiEmbeddingDeployement;
     public readonly string AzureOpenAiEmbeddingModel;
 
-    public readonly string DocIntelApiKey;
+    //public readonly string DocIntelApiKey;
     public readonly Uri DocIntelEndPoint;
 
     public int MaxChunkSize = 512;
@@ -60,7 +57,7 @@
 
     public readonly Uri SearchEndpoint;
     public readonly string SearchIndexName;
-    public readonly string SearchKey;
+    //public readonly string SearchKey;
     public readonly string SemanticSearchConfigName;
     public readonly int ModelDimensions;
     public readonly string VectorSearchHnswConfigName;

@@ -104,7 +104,7 @@ public class IndexUpserter
                                 new SemanticField("NoteChunk")
                             }
                         })
-                },
+                }
             },
             Fields =
             {

@@ -1,6 +1,5 @@
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
-using Azure.Core;
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;

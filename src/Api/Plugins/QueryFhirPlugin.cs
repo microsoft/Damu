@@ -19,6 +19,8 @@ namespace API
             using (var client = new HttpClient())
             {
                 //var content = new StringContent(json, Encoding.UTF8, "application/json");
+               
+               // client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
                 var response = await client.GetAsync(fhirServerUrl + query);
                 if (response.IsSuccessStatusCode)
                 {

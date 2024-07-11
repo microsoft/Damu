@@ -242,9 +242,9 @@ public class IndexUpserter
 
         return document;
     }
-    private async Task<IReadOnlyList<float>> GenerateEmbeddingAsync(string text)
+    private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
-        var response = await _openAIClient.GetEmbeddingsAsync(_functionSettings.AzureOpenAiEmbeddingDeployement, new EmbeddingsOptions(text));
+        var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployement, [text]));
 
         return response.Value.Data[0].Embedding;
     }

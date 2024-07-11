@@ -5,7 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Agents;
 using System.Text.Json;
+using Google.Protobuf.WellKnownTypes;
+using System.Net.Sockets;
+#pragma warning disable SKEXP0110, SKEXP0001
 
 namespace API
 {
@@ -51,7 +55,6 @@ namespace API
                history,
                executionSettings: openAIPromptExecutionSettings,
                kernel: kernel);
-
 
             return new OkObjectResult(result);
         }

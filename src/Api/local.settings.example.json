@@ -1,21 +1,26 @@
 {
   "IsEncrypted": false,
-  "Values": {
-    "AzureOpenAiKey": "",
-    "AzureOpenAiEmbeddingDeployedModel": "",
-    "AzureOpenAiEndpoint": "",
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "DocIntelApiKey": "",
-    "DocIntelEndPoint": "",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "IncomingBlobConnStr": "",
-    "ModelDimensions": "",
-    "SearchEndpoint": "",
-    "SearchIndexName": "",
-    "SearchKey": "",
-    "SemanticSearchConfigName": "",
-    "VectorSearchHnswConfigName": "",
-    "VectorSearchProfileName": "",
-    "VectorSearchVectorizer": ""
-  }
+    "Values": {
+        "AzureOpenAiKey": "",
+        "AzureOpenAiEmbeddingDeployedModel": "",
+        "AzureOpenAiEndpoint": "",
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "DocIntelApiKey": "",
+        "DocIntelEndPoint": "",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "IncomingBlobConnStr": "",
+        "ModelDimensions": "",
+        "SearchEndpoint": "",
+        "SearchIndexName": "",
+        "SearchKey": "",
+        "SemanticSearchConfigName": "",
+        "VectorSearchHnswConfigName": "",
+        "VectorSearchProfileName": "",
+        "VectorSearchVectorizer": "",
+        "FHIR_SERVER_URL": "",
+        "TenantId": "",
+        "ClientId": "",
+        "ClientSecret": "",
+        "Resource": ""
+    }
 }

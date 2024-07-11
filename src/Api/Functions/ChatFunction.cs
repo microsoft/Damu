@@ -32,6 +32,7 @@ namespace API
             var apiKey = Environment.GetEnvironmentVariable("AzureOpenAiKey")!;
             
             var builder = Kernel.CreateBuilder().AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey);
+            //Builder needs to add the HttpClient service to the service collection for the plugin to use
             builder.Services.AddHttpClient();
             builder.Plugins.AddFromType<QueryFhirPlugin>("FHIR");
 

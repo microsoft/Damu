@@ -1,4 +1,4 @@
-﻿namespace Api;
+﻿namespace Api.Models;
 
 internal class SourceNoteRecord
 {
@@ -44,7 +44,7 @@ internal class SourceNoteRecord
     {
         var result = new Dictionary<string, object?>();
 
-        foreach (var key in this.GetType().GetProperties())
+        foreach (var key in GetType().GetProperties())
         {
             if (key.Name == "NoteContent" || key.Name == "NoteInHtml" || key.Name == "NoteInText")
                 continue;

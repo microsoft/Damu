@@ -1,4 +1,4 @@
-﻿namespace Api.Functions;
+﻿namespace Api.Models;
 
 public class QueryResult
 {

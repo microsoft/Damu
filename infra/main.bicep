@@ -69,6 +69,18 @@ param cosmosAccountName string = ''
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Name of the Azure Function App')
+param functionServiceName string = ''
+
+@description('Name of the Azure Log Analytics workspace')
+param logAnalyticsName string = ''
+
+@description('Name of the Azure Application Insights dashboard')
+param applicationInsightsDashboardName string = ''
+
+@description('Name of the Azure Application Insights resource')
+param applicationInsightsName string = ''
+
 var abbrs = loadJsonContent('abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
@@ -94,6 +106,20 @@ resource formRecognizerResourceGroup 'Microsoft.Resources/resourceGroups@2024-03
 
 resource storageResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = if (!empty(storageResourceGroupName)) {
   name: !empty(storageResourceGroupName) ? storageResourceGroupName : resourceGroup.name
+}
+
+// Monitor application with Azure Monitor
+module monitoring 'core/monitor/monitoring.bicep' = {
+  name: 'monitoring'
+  scope: resourceGroup
+  params: {
+    location: location
+    tags: tags
+    includeApplicationInsights: true
+    logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+    applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
+    applicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}${resourceToken}'
+  }
 }
 
 // Storage account
@@ -136,8 +162,6 @@ module appServicePlan 'core/host/appserviceplan.bicep' = {
     kind: 'linux'
   }
 }
-
-
 
 // The application frontend
 var appServiceName = !empty(backendServiceName) ? backendServiceName : '${abbrs.webSitesAppService}backend-${resourceToken}'
@@ -184,7 +208,56 @@ module backend 'core/host/appservice.bicep' = {
     }
   }
 }
+module appServicePlanApi './core/host/appserviceplan.bicep' = {
+  name: 'appserviceplanApi'
+  scope: resourceGroup
+  params: {
+    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    location: location
+    tags: tags
+    sku: {
+      name: 'Y1'
+      tier: 'Dynamic'
+    }
+  }
+}
 
+// The application backend
+module function './app/function.bicep' = {
+  name: 'function'
+  scope: resourceGroup
+  params: {
+    name: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}function-${resourceToken}'
+    location: location
+    tags: tags
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    appServicePlanId: appServicePlan.outputs.id
+    storageAccountName: storage.outputs.name
+    allowedOrigins: [ backend.outputs.uri ]
+    useManagedIdentity: true
+    appSettings: {
+      AzureOpenAiEmbeddingDeployedModel: ''
+      AzureOpenAiEndpoint: ''
+      AzureWebJobsStorage: ''
+      DocIntelEndPoint: ''
+      FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
+      IncomingBlobConnStr: ''
+      ModelDimensions: ''
+      SearchEndpoint: ''
+      ProjectPrefix: 'damu'
+      NoteJsonFileName: '' // expects ndjson format,
+      FHIR_SERVER_URL: ''
+      TenantId: ''
+      ClientId: ''
+      ClientSecret: ''
+      Resource: ''
+      // the following are optional - complete them if you want to use key base auth, leave blank for managed identity
+      SearchKey: ''
+      AzureOpenAiKey: ''
+      DocIntelKey: ''
+    }
+  }
+}
 
 module openAi 'core/ai/cognitiveservices.bicep' = {
   name: 'openai'
@@ -219,7 +292,7 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
   }
 }
 
-module docIntelligence 'core/ai/cognitiveservices.bicep' = {
+module formRecognizer 'core/ai/cognitiveservices.bicep' = {
   name: 'formrecognizer'
   scope: formRecognizerResourceGroup
   params: {
@@ -266,6 +339,16 @@ module cosmos 'db.bicep' = {
 
 
 // USER ROLES
+module storageRoleUser 'core/security/role.bicep' = {
+  scope: storageResourceGroup
+  name: 'storage-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
 module openAiRoleUser 'core/security/role.bicep' = {
   scope: openAiResourceGroup
   name: 'openai-role-user'
@@ -307,6 +390,26 @@ module searchServiceContribRoleUser 'core/security/role.bicep' = {
 }
 
 // SYSTEM IDENTITIES
+module storageRoleBackend 'core/security/role.bicep' = {
+  scope: storageResourceGroup
+  name: 'storage-role-backend'
+  params: {
+    principalId: backend.outputs.identityPrincipalId
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
+module storageRoleFunctionApp 'core/security/role.bicep' = {
+  scope: storageResourceGroup
+  name: 'storage-role-functionapp'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    principalType: 'User'
+  }
+}
+
 module openAiRoleBackend 'core/security/role.bicep' = {
   scope: openAiResourceGroup
   name: 'openai-role-backend'
@@ -317,11 +420,31 @@ module openAiRoleBackend 'core/security/role.bicep' = {
   }
 }
 
+module openAiRoleFunctionApp 'core/security/role.bicep' = {
+  scope: openAiResourceGroup
+  name: 'openai-role-functionapp'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module searchRoleBackend 'core/security/role.bicep' = {
   scope: searchServiceResourceGroup
   name: 'search-role-backend'
   params: {
     principalId: backend.outputs.identityPrincipalId
+    roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module searchRoleFunctionApp 'core/security/role.bicep' = {
+  scope: searchServiceResourceGroup
+  name: 'search-role-functionapp'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
     roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
     principalType: 'ServicePrincipal'
   }

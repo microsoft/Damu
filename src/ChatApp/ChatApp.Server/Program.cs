@@ -24,6 +24,8 @@ public class Program
         //    return new CosmosConversationService(builder.Configuration["Cosmos:Endpoint"], builder.Configuration["Cosmos:Key"]);
         //});
 
+        builder.Services.AddOpenAiServices();
+
         var app = builder.Build();
 
         app.UseDefaultFiles();

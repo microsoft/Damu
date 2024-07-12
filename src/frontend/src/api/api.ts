@@ -37,7 +37,7 @@ export const fetchChatHistoryInit = (): Conversation[] | null => {
 }
 
 export const historyList = async (offset = 0): Promise<Conversation[] | null> => {
-  const response = await fetch(`/history/ensure`, {
+  const response = await fetch(`/history/list?offset=${offset}`, {
     method: 'GET'
   })
     .then(async res => {

@@ -1,4 +1,5 @@
 ﻿
+using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,8 +19,15 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> PostConversation(
-        [FromServices] ChatCompletionService chat)
-    {        
+        [FromServices] ChatCompletionService chat,
+        [FromServices] AzureSearchService search)
+    {
+        // do the search here
+        //var searchResults = await search.QueryDocumentsAsync("search query");
+        // stuff results into the ChatHistory[]
+        // TODO: add the phancy plugins and stuff HERE <--
+        // call completion??
+        // 
         return Results.Ok(await chat.CompleteChat("It works!"));
     }
 

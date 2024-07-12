@@ -30,6 +30,10 @@ param searchUrlColumn string = 'url'
 param openAiResourceName string = ''
 param openAiResourceGroupName string = ''
 param openAiResourceGroupLocation string = location
+param formRecognizerServiceName string = ''
+param formRecognizerResourceGroupName string = ''
+param formRecognizerResourceGroupLocation string = location
+param formRecognizerSkuName string = 'S0'
 param openAiSkuName string = ''
 param openAIModel string = 'gpt-4o'
 param openAIModelName string = 'gpt-4o'
@@ -41,6 +45,18 @@ param openAISystemMessage string = 'You are an AI assistant that helps people fi
 param openAIStream bool = false
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
+
+@description('Name of the storage account')
+param storageAccountName string = ''
+
+@description('Name of the storage container. Default: content')
+param storageContainerName string = 'content'
+
+@description('Location of the resource group for the storage account')
+param storageResourceGroupLocation string = location
+
+@description('Name of the resource group for the storage account')
+param storageResourceGroupName string = ''
 
 // Used for the Azure AD application
 param authClientId string
@@ -72,6 +88,37 @@ resource searchServiceResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-
   name: !empty(searchServiceResourceGroupName) ? searchServiceResourceGroupName : resourceGroup.name
 }
 
+resource formRecognizerResourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' existing = if (!empty(formRecognizerResourceGroupName)) {
+  name: !empty(formRecognizerResourceGroupName) ? formRecognizerResourceGroupName : resourceGroup.name
+}
+
+resource storageResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = if (!empty(storageResourceGroupName)) {
+  name: !empty(storageResourceGroupName) ? storageResourceGroupName : resourceGroup.name
+}
+
+// Storage account
+module storage 'core/storage/storage-account.bicep' = {
+  name: 'storage'
+  scope: storageResourceGroup
+  params: {
+    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+    location: storageResourceGroupLocation
+    tags: tags
+    sku: {
+      name: 'Standard_LRS'
+    }
+    deleteRetentionPolicy: {
+      enabled: true
+      days: 2
+    }
+    containers: [
+      {
+        name: storageContainerName
+        publicAccess: 'Blob'
+      }
+    ]
+  }
+}
 
 // Create an App Service Plan to group applications under the same payment plan and SKU
 module appServicePlan 'core/host/appserviceplan.bicep' = {
@@ -88,6 +135,8 @@ module appServicePlan 'core/host/appserviceplan.bicep' = {
     kind: 'linux'
   }
 }
+
+
 
 // The application frontend
 var appServiceName = !empty(backendServiceName) ? backendServiceName : '${abbrs.webSitesAppService}backend-${resourceToken}'
@@ -152,7 +201,7 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
         model: {
           format: 'OpenAI'
           name: openAIModelName
-          version: '0613'
+          version: '2024-05-13'
         }
         capacity: 30
       }
@@ -166,6 +215,20 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
         capacity: 30
       }
     ]
+  }
+}
+
+module docIntelligence 'core/ai/cognitiveservices.bicep' = {
+  name: 'formrecognizer'
+  scope: formRecognizerResourceGroup
+  params: {
+    name: !empty(formRecognizerServiceName) ? formRecognizerServiceName : '${abbrs.cognitiveServicesFormRecognizer}${resourceToken}'
+    kind: 'FormRecognizer'
+    location: formRecognizerResourceGroupLocation
+    tags: tags
+    sku: {
+      name: formRecognizerSkuName
+    }
   }
 }
 

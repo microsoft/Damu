@@ -1,4 +1,6 @@
 
+using System.Text.Json.Serialization;
+
 namespace ChatApp.Server;
 
 public class Program
@@ -34,6 +36,27 @@ public class Program
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
+
+        app.MapGet("/frontend_settings", (HttpContext httpContext) =>
+        {
+            var settings = new FrontendSettings
+            {
+                AuthEnabled = false,
+                FeedbackEnabled = false,
+                Ui = new UiSettings
+                {
+                    Title = "Damu",
+                    ChatTitle = "Start chatting",
+                    ChatDescription = "This chatbot is configured to answer your questions",
+                    ShowShareButton = true
+                },
+                SanitizeAnswer = false
+            };
+
+            return settings;
+        })
+            .WithName("GetFrontendSettings")
+            .WithOpenApi();
 
         app.MapGet("/weatherforecast", (HttpContext httpContext) =>
         {

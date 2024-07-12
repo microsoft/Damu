@@ -91,3 +91,69 @@ public partial class SearchAsync
         };
     }
 }
+
+public class QueryRequest
+{
+    public string? Query { get; set; }
+    //public float[]? Embedding { get; set; }
+    //public RequestOverrides? Overrides { get; set; }
+}
+
+/** pseudo code from Python
+* @bp.route("/history/generate", methods=["POST"])
+async def add_conversation():
+    authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+    user_id = authenticated_user["user_principal_id"]
+
+    ## check request for conversation_id
+    request_json = await request.get_json()
+    conversation_id = request_json.get("conversation_id", None)
+
+    try:
+        # make sure cosmos is configured
+        cosmos_conversation_client = init_cosmosdb_client()
+        if not cosmos_conversation_client:
+            raise Exception("CosmosDB is not configured or not working")
+
+        # check for the conversation_id, if the conversation is not set, we will create a new one
+        history_metadata = {}
+        if not conversation_id:
+            title = await generate_title(request_json["messages"])
+            conversation_dict = await cosmos_conversation_client.create_conversation(
+                user_id=user_id, title=title
+            )
+            conversation_id = conversation_dict["id"]
+            history_metadata["title"] = title
+            history_metadata["date"] = conversation_dict["createdAt"]
+
+        ## Format the incoming message object in the "chat/completions" messages format
+        ## then write it to the conversation history in cosmos
+        messages = request_json["messages"]
+        if len(messages) > 0 and messages[-1]["role"] == "user":
+            createdMessageValue = await cosmos_conversation_client.create_message(
+                uuid=str(uuid.uuid4()),
+                conversation_id=conversation_id,
+                user_id=user_id,
+                input_message=messages[-1],
+            )
+            if createdMessageValue == "Conversation not found":
+                raise Exception(
+                    "Conversation not found for the given conversation ID: "
+                    + conversation_id
+                    + "."
+                )
+        else:
+            raise Exception("No user message found")
+
+        await cosmos_conversation_client.cosmosdb_client.close()
+
+        # Submit request to Chat Completions for response
+        request_body = await request.get_json()
+        history_metadata["conversation_id"] = conversation_id
+        request_body["history_metadata"] = history_metadata
+        return await conversation_internal(request_body, request.headers)
+
+    except Exception as e:
+        logging.exception("Exception in /history/generate")
+        return jsonify({"error": str(e)}), 500
+*/

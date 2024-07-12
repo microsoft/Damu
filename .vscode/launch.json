@@ -3,10 +3,10 @@
   "configurations": [
     {
       "name": "Python: Sample App Backend",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "quart",
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/src/sample-app-aoai-chatGPT",
       "env": {
           "QUART_APP": "app:app",
           "QUART_ENV": "development",
@@ -18,14 +18,15 @@
           "-p 50505"
       ],
       "console": "integratedTerminal",
-      "justMyCode": false
+      "justMyCode": false,
+      "preLaunchTask": "python: loadenv"
     },
     {
       "type": "chrome",
       "request": "launch",
       "name": "Frontend: Launch Chrome debugger",
       "url": "http://127.0.0.1:50505",
-      "webRoot": "${workspaceFolder}/frontend",
+      "webRoot": "${workspaceFolder}/src/frontend",
       "smartStep": true
     }
   ]

@@ -2,7 +2,7 @@ import { FormEvent, useContext, useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { nord } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { CommandBarButton,Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from '@fluentui/react'
+import { CommandBarButton, Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from '@fluentui/react'
 import { useBoolean } from '@fluentui/react-hooks'
 import { ThumbDislike20Filled, ThumbLike20Filled } from '@fluentui/react-icons'
 import DOMPurify from 'dompurify'
@@ -228,7 +228,7 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
   }
 
   const components = {
-    code({ node, ...props }: { node: any;[key: string]: any }) {
+    code({ node, ...props }: { node: any; [key: string]: any }) {
       let language
       if (props.className) {
         const match = props.className.match(/language-(\w+)/)
@@ -253,7 +253,10 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                 remarkPlugins={[remarkGfm, supersub]}
                 children={
                   SANITIZE_ANSWER
-                    ? DOMPurify.sanitize(parsedAnswer.markdownFormatText, { ALLOWED_TAGS: XSSAllowTags, ALLOWED_ATTR: XSSAllowAttributes })
+                    ? DOMPurify.sanitize(parsedAnswer.markdownFormatText, {
+                        ALLOWED_TAGS: XSSAllowTags,
+                        ALLOWED_ATTR: XSSAllowAttributes
+                      })
                     : parsedAnswer.markdownFormatText
                 }
                 className={styles.answerText}
@@ -269,7 +272,7 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                     onClick={() => onLikeResponseClicked()}
                     style={
                       feedbackState === Feedback.Positive ||
-                        appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive
+                      appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive
                         ? { color: 'darkgreen', cursor: 'pointer' }
                         : { color: 'slategray', cursor: 'pointer' }
                     }
@@ -280,8 +283,8 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                     onClick={() => onDislikeResponseClicked()}
                     style={
                       feedbackState !== Feedback.Positive &&
-                        feedbackState !== Feedback.Neutral &&
-                        feedbackState !== undefined
+                      feedbackState !== Feedback.Neutral &&
+                      feedbackState !== undefined
                         ? { color: 'darkred', cursor: 'pointer' }
                         : { color: 'slategray', cursor: 'pointer' }
                     }
@@ -315,16 +318,15 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                         : '1 reference'}
                     </span>
                   </Text>
-                  <CommandBarButton
-      className={styles.exportButtonRoot}
-      iconProps={{ iconName: 'Export' }}
-
-      text="Export"
-    />  
                   <FontIcon
                     className={styles.accordionIcon}
                     onClick={handleChevronClick}
                     iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
+                  />
+                  <CommandBarButton
+                    className={styles.exportButtonRoot}
+                    iconProps={{ iconName: 'Export' }}
+                    text="Export"
                   />
                 </Stack>
               </Stack>
@@ -343,15 +345,9 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
                     aria-label="Open Intents"
                     tabIndex={0}
                     role="button">
-                    <span>
-                      Show Intents
-                    </span>
+                    <span>Show Intents</span>
                   </Text>
-                  <FontIcon
-                    className={styles.accordionIcon}
-                    onClick={handleChevronClick}
-                    iconName={'ChevronRight'}
-                  />
+                  <FontIcon className={styles.accordionIcon} onClick={handleChevronClick} iconName={'ChevronRight'} />
                 </Stack>
               </Stack>
             </Stack.Item>

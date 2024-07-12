@@ -103,6 +103,7 @@ module storage 'core/storage/storage-account.bicep' = {
   params: {
     name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: storageResourceGroupLocation
+    publicNetworkAccess: 'Enabled'
     tags: tags
     sku: {
       name: 'Standard_LRS'

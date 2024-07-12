@@ -46,6 +46,10 @@ export default defineConfig({
             '^/frontend_settings': {
                 target,
                 secure: false
+            },
+            '^/history/*': {
+                target,
+                secure: false
             }
         },
         port: 5173,

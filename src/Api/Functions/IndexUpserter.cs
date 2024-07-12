@@ -1,5 +1,4 @@
 #pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-using Api.Models;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
@@ -67,6 +66,16 @@ public class IndexUpserter
 
     private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
     {
+        var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
+        {
+            ResourceUri = _functionSettings.AzureOpenAiEndpoint,
+            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement
+        } : new AzureOpenAIParameters
+        {
+            ResourceUri = _functionSettings.AzureOpenAiEndpoint,
+            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement
+        };
+
         SearchIndex index = new(_functionSettings.SearchIndexName)
         {
             VectorSearch = new()
@@ -83,11 +92,7 @@ public class IndexUpserter
                     {
                         new AzureOpenAIVectorizer(_functionSettings.VectorSearchVectorizer)
                         {
-                            AzureOpenAIParameters = new AzureOpenAIParameters()
-                            {
-                                ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-                                DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement,
-                            }
+                            AzureOpenAIParameters = aoaiParams
                         }
                     }
             },
@@ -198,7 +203,6 @@ public class IndexUpserter
             Base64Source = BinaryData.FromString(sourceNote.NoteInHtml)
         };
 
-        // with markdown
         var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Markdown);
         var chunkerOverlapTokens = Convert.ToInt32(_functionSettings.ChunkOverlapPercent * _functionSettings.MaxChunkSize);
         var lines = TextChunker.SplitMarkDownLines(analysis.Value.Content, _functionSettings.MaxChunkSize, tokenCounter: GetTokenCount);

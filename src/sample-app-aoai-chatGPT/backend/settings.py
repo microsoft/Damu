@@ -41,7 +41,7 @@ class _UiSettings(BaseSettings):
         env_ignore_empty=True
     )
 
-    title: str = "Contoso"
+    title: str = "Damu"
     logo: Optional[str] = None
     chat_logo: Optional[str] = None
     chat_title: str = "Start chatting"
@@ -107,7 +107,7 @@ class _AzureOpenAISettings(BaseSettings):
     temperature: float = 0
     top_p: float = 0
     max_tokens: int = 1000
-    stream: bool = True
+    stream: bool = False
     stop_sequence: Optional[List[str]] = None
     seed: Optional[int] = None
     choices_count: Optional[conint(ge=1, le=128)] = Field(default=1, serialization_alias="n")

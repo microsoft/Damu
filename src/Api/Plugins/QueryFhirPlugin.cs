@@ -15,6 +15,7 @@ namespace API
             _client = client;
         }
 
+
         [KernelFunction("query_fhir")]
         [Description("makes an HTTP call to a FHIR endpoint to get clinical data.")]
         [return: Description("JSON string of clinical data specific to the query sent")]
@@ -24,7 +25,7 @@ namespace API
             try
             {
                 //get FHIR server URL from settings
-                var fhirServerUrl = Environment.GetEnvironmentVariable("FHIR_SERVER_URL");
+                var fhirServerUrl = Environment.GetEnvironmentVariable("FHIRServerUrl");
 
                 string bearerToken = await GetBearerToken();
                 _client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
@@ -57,10 +58,10 @@ namespace API
                     return _bearerToken;
                 }
 
-                var tenantId = Environment.GetEnvironmentVariable("TenantId");
-                var clientId = Environment.GetEnvironmentVariable("ClientId");
-                var clientSecret = Environment.GetEnvironmentVariable("ClientSecret");
-                var resource = Environment.GetEnvironmentVariable("Resource");
+                var tenantId = Environment.GetEnvironmentVariable("FHIRAuthTenantId");
+                var clientId = Environment.GetEnvironmentVariable("FHIRAuthClientId");
+                var clientSecret = Environment.GetEnvironmentVariable("FHIRAuthClientSecret");
+                var resource = Environment.GetEnvironmentVariable("FHIRAuthResource");
 
                 var url = $"https://login.microsoftonline.com/{tenantId}/oauth2/token";
 

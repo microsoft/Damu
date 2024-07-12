@@ -58,6 +58,23 @@ module functions 'appservice.bicep' = {
         AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
         FUNCTIONS_WORKER_RUNTIME: runtimeName
+        AzureOpenAiChatDeployedModel: aoaiChatDeployment
+        AzureOpenAiEmbeddingDeployedModel: aoaiEmbededDeployment
+        AzureOpenAiEndpoint: aoaiEndpoint
+        AzureOpenAiKey: aoaiKey
+        FHIRAuthClientId: fhirAuthClientId
+        FHIRAuthClientSecret: fhirAuthClientSecret
+        FHIRAuthResource: fhirAuthResource
+        FHIRAuthTenantId: fhirAuthTenantId
+        FHIRServerUrl: fhirServerUrl
+        DocIntelApiKey: documentIntelApiKey
+        DocIntelEndPoint: documentIntelEndpoint
+        IncomingBlobConnStr: incommingBlobConStr
+        ModelDimensions: modelDimensions
+        SearchEndpoint: searchEndpoint
+        SearchIndexName: searchIndexName
+        SearchKey: searchKey
+        SemanticSearchConfigName: semanticSearchConfigName
       })
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild

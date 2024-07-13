@@ -8,7 +8,7 @@
         AzureOpenAiKey = envVars["AzureOpenAiKey"]?.ToString();
         DocIntelKey = envVars["DocIntelKey"]?.ToString();
 
-        AzureOpenAiEmbeddingDeployement = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployement") : envVars["AzureOpenAiEmbeddingDeployement"]?.ToString()!;
+        AzureOpenAiEmbeddingDeployment = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployment"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployment") : envVars["AzureOpenAiEmbeddingDeployment"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
 
         NoteJsonFileName = string.IsNullOrWhiteSpace(envVars["NoteJsonFileName"]?.ToString()) ? throw new NullReferenceException("NoteJsonFileName") : envVars["NoteJsonFileName"]?.ToString()!;
@@ -62,7 +62,7 @@
     public readonly string NoteJsonFileName;
 
     public readonly Uri AzureOpenAiEndpoint;
-    public readonly string AzureOpenAiEmbeddingDeployement;
+    public readonly string AzureOpenAiEmbeddingDeployment;
     public readonly string AzureOpenAiEmbeddingModel;
 
     public readonly Uri DocIntelEndPoint;

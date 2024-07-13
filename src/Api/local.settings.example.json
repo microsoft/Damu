@@ -1,24 +1,24 @@
 {
   "IsEncrypted": false,
-    "Values": {
-        "AzureOpenAiEmbeddingDeployedModel": "",
-        "AzureOpenAiEndpoint": "",
-        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-        "DocIntelEndPoint": "",
-        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-        "IncomingBlobConnStr": "",
-        "ModelDimensions": "",
-        "SearchEndpoint": "",
-        "ProjectPrefix": "damu",
-        "NoteJsonFileName": "", // expects ndjson format,
-        "FHIRServerUrl": "",
-        "FHIRAuthTenantId": "",
-        "FHIRAuthClientId": "",
-        "FHIRAuthClientSecret": "",
-        "FHIRAuthResource": "",
-        // the following are optional - complete them if you want to use key base auth, leave blank for managed identity
-        "SearchKey": "",
-        "AzureOpenAiKey": "",
-        "DocIntelKey": ""
-    }
+  "Values": {
+    "AzureOpenAiEmbeddingDeployment": "embeddings",
+    "AzureOpenAiEmbeddingModel": "text-embedding-3-large",
+    "AzureOpenAiEndpoint": "",
+    "AzureOpenAiKey": "",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "DocIntelEndPoint": "",
+    "DocIntelKey": "",
+    "FHIRAuthClientId": "",
+    "FHIRAuthClientSecret": "",
+    "FHIRAuthResource": "",
+    "FHIRAuthTenantId": "",
+    "FHIRServerUrl": "",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "IncomingBlobConnStr": "",
+    "ModelDimensions": 3072,
+    "NoteJsonFileName": "",
+    "ProjectPrefix": "damu",
+    "SearchEndpoint": "",
+    "SearchKey": ""
+  }
 }

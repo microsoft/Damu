@@ -69,11 +69,11 @@ public class IndexUpserter
         var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
         {
             ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement
+            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
         } : new AzureOpenAIParameters
         {
             ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployement
+            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
         };
 
         SearchIndex index = new(_functionSettings.SearchIndexName)
@@ -239,7 +239,7 @@ public class IndexUpserter
     }
     private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
-        var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployement, [text]));
+        var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployment, [text]));
 
         return response.Value.Data[0].Embedding;
     }

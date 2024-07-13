@@ -86,7 +86,6 @@ public partial class SearchAsync
                         Exhaustive = true
                     }
                 },
-
             }
         };
     }
@@ -94,7 +93,9 @@ public partial class SearchAsync
 
 public class QueryRequest
 {
+    public string? Filter { get; set; } = string.Empty;
     public string? Query { get; set; }
+    public int KNearestNeighborsCount { get; set; } = 5;
     //public float[]? Embedding { get; set; }
     //public RequestOverrides? Overrides { get; set; }
 }

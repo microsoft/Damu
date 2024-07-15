@@ -81,7 +81,7 @@ namespace API
                 {
                     var responseString = await response.Content.ReadAsStringAsync();
                     var responseObject = JsonSerializer.Deserialize<Dictionary<string, string>>(responseString);
-                    if (responseObject != null && responseObject.ContainsKey("access_token"))
+                    if (responseObject?.TryGetValue("access_token", out _bearerToken) ?? false)
                     {
                         _bearerToken = responseObject["access_token"];
                         int expiresIn = int.Parse(responseObject["expires_in"]);

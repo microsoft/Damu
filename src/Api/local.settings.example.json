@@ -4,10 +4,10 @@
     "AzureOpenAiEmbeddingDeployment": "embeddings",
     "AzureOpenAiEmbeddingModel": "text-embedding-3-large",
     "AzureOpenAiEndpoint": "",
-    "AzureOpenAiKey": "",
+    //"AzureOpenAiKey": "",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "DocIntelEndPoint": "",
-    "DocIntelKey": "",
+    //"DocIntelKey": "", // keys are optional; will use managed identity if they are left out
     "FHIRAuthClientId": "",
     "FHIRAuthClientSecret": "",
     "FHIRAuthResource": "",
@@ -16,9 +16,9 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "IncomingBlobConnStr": "",
     "ModelDimensions": 3072,
-    "NoteJsonFileName": "",
+    "NoteJsonFileName": "modified_Notes.ndjson", // this will be removed after refactoring of the indexing functions for single file format expectations
     "ProjectPrefix": "damu",
-    "SearchEndpoint": "",
-    "SearchKey": ""
+    "SearchEndpoint": ""
+    //"SearchKey": ""
   }
 }

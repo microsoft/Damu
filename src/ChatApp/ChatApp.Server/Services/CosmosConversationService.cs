@@ -1,6 +1,7 @@
 ﻿using ChatApp.Server.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualBasic;
 
 namespace ChatApp.Server.Services;
 
@@ -69,6 +70,21 @@ internal class CosmosConversationService
             return response;
         else
             throw new Exception("Failed to create conversation.");
+    }
+
+    internal async Task<Conversation?> UpdateConversationAsync(string userId, Conversation conversation)
+    {
+        var dbConversation = await _container.ReadItemAsync<Conversation>(conversation.Id, new PartitionKey(userId));
+
+        if (conversation == null)
+            return null;
+
+        dbConversation.Resource.Title = conversation.Title;
+        dbConversation.Resource.UpdatedAt = DateTime.UtcNow;
+
+        var response = await _container.UpsertItemAsync(dbConversation.Resource);
+
+        return response.Resource;
     }
 
     internal async Task<bool> DeleteConversationAsync(string userId, string conversationId)

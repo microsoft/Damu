@@ -21,7 +21,7 @@ public static partial class Endpoints
         app.MapDelete("/history/delete", DeleteHistory);
         app.MapGet("/history/list", ListHistory);
         app.MapPost("/history/read", ReadHistory);
-        app.MapPost("/history/rename", RenameHistory);
+        app.MapPost("/history/rename", RenameHistoryAsync);
         app.MapDelete("/history/delete_all", DeleteAllHistoryAsync);
         app.MapPost("/history/clear", ClearHistoryAsync);
 
@@ -38,7 +38,6 @@ public static partial class Endpoints
             : Results.NotFound(JsonSerializer.Deserialize<object>(@"{ ""error"": ""CosmosDB is not configured""}"));
     }
 
-    #region NotImplemented
     private static async Task<IActionResult> ClearHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
         // get the user id from the request headers
@@ -47,7 +46,6 @@ public static partial class Endpoints
         if (user == null)
             return new UnauthorizedResult();
 
-        // check request for conversation_id
         var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
@@ -79,52 +77,27 @@ public static partial class Endpoints
         });
     }
 
-    private static async Task RenameHistory(HttpContext context)
+    private static async Task<IActionResult> RenameHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
+        var user = GetUser(context);
 
-        //## check request for conversation_id
-        //request_json = await request.get_json()
-        //conversation_id = request_json.get("conversation_id", None)
+        if (user == null)
+            return new UnauthorizedResult();
 
-        //if not conversation_id:
-        //        return jsonify({ "error": "conversation_id is required"}), 400
+        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
-        //## make sure cosmos is configured
-        //cosmos_conversation_client = init_cosmosdb_client()
-        //if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
+        if (string.IsNullOrWhiteSpace(conversation?.Id))
+            return new BadRequestObjectResult("conversation_id is required");
 
-        //## get the conversation from cosmos
-        //conversation = await cosmos_conversation_client.get_conversation(
-        //    user_id, conversation_id
-        //)
-        //if not conversation:
-        //        return (
-        //            jsonify(
-        //            {
-        //        "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."
-        //            }
-        //        ),
-        //        404,
-        //    )
+        var updatedConversation = await conversationService.UpdateConversationAsync(user.UserPrincipalId, conversation);
 
-        //## update the title
-        //title = request_json.get("title", None)
-        //if not title:
-        //        return jsonify({ "error": "title is required"}), 400
-        //conversation["title"] = title
-        //updated_conversation = await cosmos_conversation_client.upsert_conversation(
-        //    conversation
-        //)
+        if (updatedConversation == null)
+            return new NotFoundObjectResult(new { error = $"Conversation {conversation.Id} was not found" });
 
-        //await cosmos_conversation_client.cosmosdb_client.close()
-        //return jsonify(updated_conversation), 200
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return new OkObjectResult(updatedConversation);
     }
 
+    #region NotImplemented
     private static async Task ReadHistory(HttpContext context)
     {
         //authenticated_user = get_authenticated_user_details(request_headers = request.headers)

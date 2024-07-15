@@ -4,6 +4,7 @@ using ChatApp.Server.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Plugins.Core;
 
 namespace ChatApp.Server.Services;
 
@@ -35,7 +36,7 @@ public class ChatCompletionService : IChatService
             builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
             builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
         }
-
+        builder.Plugins.AddFromType<AzureSearchService>();
         _kernel = builder.Build();
     }
 

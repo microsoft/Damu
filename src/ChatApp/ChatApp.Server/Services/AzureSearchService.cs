@@ -1,11 +1,16 @@
-﻿using Azure.Search.Documents;
+﻿using System.ComponentModel;
+using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using ChatApp.Server.Models;
+using Microsoft.SemanticKernel;
 
 namespace ChatApp.Server.Services;
 
 public class AzureSearchService(SearchClient searchClient)
 {
+    [KernelFunction("QueryDocumentsAsync")]
+    [Description("Query relevant content from Azure Search")]
+    [return: Description("Relevant content text data")]
     public async Task<SupportingContentRecord[]> QueryDocumentsAsync(
         string? query = null,
         float[]? embedding = null,

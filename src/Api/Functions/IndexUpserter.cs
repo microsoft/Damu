@@ -39,13 +39,32 @@ public class IndexUpserter
         // clean out BOM if present
         var cleanedContent = content.Trim().Replace("\uFEFF", "");
 
-        var content = await blobStreamReader.ReadToEndAsync();
+        if (!string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");
+
+            try
+            {
+                await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
+            }
+            catch (RequestFailedException reqFailedException)
+            {
+                if (string.Equals(reqFailedException.InnerException?.Data["Azure-Error-Code"]?.ToString(), "IndexNotFound", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Index does not exist. Skipping deletion.");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
 
         _logger.LogInformation("Creating/updating index...");
 
         await CreateOrUpdateIndexAsync();
 
-        var jsonReader = new JsonTextReader(new StringReader(content))
+        var jsonReader = new JsonTextReader(new StringReader(cleanedContent))
         {
             SupportMultipleContent = true
         };
@@ -63,6 +82,8 @@ public class IndexUpserter
         _logger.LogInformation($"Parsed out {inputDocuments.Count} note records to analyze for loading.");
 
         await LoadIndexAsync(inputDocuments);
+     
+        _logger.LogInformation($"Index loading completed.");
     }
 
     private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
@@ -161,10 +182,13 @@ public class IndexUpserter
 
             if (tokenCount > _functionSettings.MaxChunkSize)
             {
+                _logger.LogDebug($"Note {document.NoteId} is too large to index in one chunk. Splitting...");
                 newSearchDocs = await RecursivelySplitNoteContent(document);
+                _logger.LogDebug($"Note {document.NoteId} chunking produced {newSearchDocs.Count} chunks.");
             }
             else
             {
+                _logger.LogDebug($"Note {document.NoteId} is small enough to index in one chunk.");
                 document.NoteChunk = content;
                 document.NoteChunkOrder = 0;
                 newSearchDocs.Add(await ConvertToSearchDocumentAsync(document));
@@ -172,6 +196,8 @@ public class IndexUpserter
 
             sampleDocuments.AddRange(newSearchDocs);
         }
+
+        Response<IndexDocumentsResult>? indexingResult = null;
 
         try
         {
@@ -182,7 +208,7 @@ public class IndexUpserter
 
             _logger.LogInformation($"Loading {sampleDocuments.Count} index records to index...");
 
-            await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
+            indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
         }
         catch (AggregateException aggregateException)
         {
@@ -190,6 +216,13 @@ public class IndexUpserter
             foreach (var exception in aggregateException.InnerExceptions)
             {
                 _logger.LogError(exception.Message);
+            }
+
+            _logger.LogInformation($"Encountered {aggregateException.InnerExceptions.Count} exceptions trying to load the index.");
+
+            if(indexingResult?.Value.Results.Count > 0)
+            {
+                _logger.LogInformation($"Successfully indexed {indexingResult.Value.Results.Count} documents.");
             }
         }
     }
@@ -232,7 +265,11 @@ public class IndexUpserter
         var dictionary = sourceNote.ToDictionary();
 
         if (!string.IsNullOrWhiteSpace(sourceNote.NoteChunk))
+        {
+            _logger.LogDebug($"Generating embeddings for note {sourceNote.NoteId} chunk {sourceNote.NoteChunkOrder}");
+
             dictionary["NoteChunkVector"] = await GenerateEmbeddingAsync(sourceNote.NoteChunk);
+        }
 
         var document = new SearchDocument(dictionary);
 
@@ -240,8 +277,10 @@ public class IndexUpserter
     }
     private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
-        var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployment, [text]));
+        _logger.LogTrace($"Generating embedding for text: {text}");
 
+        var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployment, [text]));
+        
         return response.Value.Data[0].Embedding;
     }
 

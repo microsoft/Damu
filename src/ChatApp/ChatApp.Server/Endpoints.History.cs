@@ -1,4 +1,5 @@
 ﻿
+using ChatApp.Server.Models;
 using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.VisualBasic;
 using System;
@@ -494,29 +495,23 @@ public static partial class Endpoints
         throw new NotImplementedException();
     }
 
-    private static async Task<object?> get_authenticated_user_details(object request_headers)
+    private static EasyAuthUser? GetUser(HttpContext context)
     {
-        // user_object = { }
+        // return a default user if we're in development mode otherwise return null
+        if (!context.Request.Headers.TryGetValue("X-Ms-Client-Principal-Id", out var principalId))
+            return !string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase)
+                ? new() // todo: should we also use a test static json of Easy Auth headers to be injected into HttpContext in development mode?
+                : null;
 
-        //## check the headers for the Principal-Id (the guid of the signed in user)
-        //if "X-Ms-Client-Principal-Id" not in request_headers.keys():
-        //    ## if it's not, assume we're in development mode and return a default user
-        //    from.import sample_user
-        //    raw_user_object = sample_user.sample_user
-        //else:
-        //    ## if it is, get the user details from the EasyAuth headers
-        //    raw_user_object = { k: v for k, v in request_headers.items()}
-
-        //    user_object['user_principal_id'] = raw_user_object.get('X-Ms-Client-Principal-Id')
-        //user_object['user_name'] = raw_user_object.get('X-Ms-Client-Principal-Name')
-        //user_object['auth_provider'] = raw_user_object.get('X-Ms-Client-Principal-Idp')
-        //user_object['auth_token'] = raw_user_object.get('X-Ms-Token-Aad-Id-Token')
-        //user_object['client_principal_b64'] = raw_user_object.get('X-Ms-Client-Principal')
-        //user_object['aad_id_token'] = raw_user_object.get('X-Ms-Token-Aad-Id-Token')
-
-        //return user_object
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return new EasyAuthUser
+        {
+            UserPrincipalId = principalId.FirstOrDefault() ?? string.Empty,
+            Username = context.Request.Headers["X-Ms-Client-Principal-Name"].FirstOrDefault() ?? string.Empty,
+            AuthProvider = context.Request.Headers["X-Ms-Client-Principal-Idp"].FirstOrDefault() ?? string.Empty,
+            AuthToken = context.Request.Headers["X-Ms-Token-Aad-Id-Token"].FirstOrDefault() ?? string.Empty,
+            ClientPrincipalB64 = context.Request.Headers["X-Ms-Client-Principal"].FirstOrDefault() ?? string.Empty,
+            AadIdToken = context.Request.Headers["X-Ms-Token-Aad-Id-Token"].FirstOrDefault() ?? string.Empty
+        };
     }
     #endregion
 }

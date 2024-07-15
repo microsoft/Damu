@@ -1,0 +1,18 @@
+{
+    "id": "6c4e79ff-8ac2-4aa1-bd28-389d196ac18d",
+    "model": "gpt-4o",
+    "created": 1720814138,
+    "object": "extensions.chat.completion.chunk",
+    "choices": [
+        {
+            "messages": [
+                {
+                    "role": "tool",
+                    "content": "stringified json response - see citation reference"
+                }
+            ]
+        }
+    ],
+    "history_metadata": {},
+    "apim-request-id": "2295bd6a-e807-4e55-93eb-0cfc38ae9355"
+}

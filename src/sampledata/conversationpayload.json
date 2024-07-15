@@ -1,0 +1,28 @@
+{
+    "messages": [
+        {
+            "id": "791aacdd-a422-2c75-b060-a334c50576ac",
+            "role": "user",
+            "content": "who is the neurology contact?",
+            "date": "2024-07-15T14:24:51.932Z"
+        },
+        {
+            "role": "tool",
+            "content": "see citation sample payload",
+            "id": "4c428929-8201-4c06-9eef-790471a74d77",
+            "date": "2024-07-15T14:24:57.315Z"
+        },
+        {
+            "role": "assistant",
+            "content": "The neurology contact is the Neurology consult attending, who can be reached via the Neuro consult resident [doc1].",
+            "id": "4c428929-8201-4c06-9eef-790471a74d77",
+            "date": "2024-07-15T14:24:57.696Z"
+        },
+        {
+            "id": "f781aa2a-1817-14dd-6391-4f83d54d03ab",
+            "role": "user",
+            "content": "what number should i call?",
+            "date": "2024-07-15T14:25:22.292Z"
+        }
+    ]
+}

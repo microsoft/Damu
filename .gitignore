@@ -398,3 +398,4 @@ FodyWeavers.xsd
 *.sln.iml
 
 .venv/
+src/ChatApp/chatapp.client/.vite/

@@ -34,9 +34,10 @@ public class IndexUpserter
     }
 
     [Function(nameof(IndexUpserter))]
-    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] Stream stream, string name)
+    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content, string name)
     {
-        using var blobStreamReader = new StreamReader(stream);
+        // clean out BOM if present
+        var cleanedContent = content.Trim().Replace("\uFEFF", "");
 
         var content = await blobStreamReader.ReadToEndAsync();
 

@@ -45,21 +45,7 @@ public class IndexUpserter
         {
             _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");
 
-            try
-            {
-                await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
-            }
-            catch (RequestFailedException reqFailedException)
-            {
-                if (string.Equals(reqFailedException.InnerException?.Data["Azure-Error-Code"]?.ToString(), "IndexNotFound", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning("Index does not exist. Skipping deletion.");
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
         }
 
         _logger.LogInformation("Creating/updating index...");
@@ -84,7 +70,7 @@ public class IndexUpserter
         _logger.LogInformation($"Parsed out {inputDocuments.Count} note records to analyze for loading.");
 
         await LoadIndexAsync(inputDocuments);
-     
+
         _logger.LogInformation($"Index loading completed.");
     }
 
@@ -225,7 +211,7 @@ public class IndexUpserter
 
             _logger.LogInformation($"Encountered {aggregateException.InnerExceptions.Count} exceptions trying to load the index.");
 
-            if(indexingResult?.Value.Results.Count > 0)
+            if (indexingResult?.Value.Results.Count > 0)
             {
                 _logger.LogInformation($"Successfully indexed {indexingResult.Value.Results.Count} documents.");
             }
@@ -285,7 +271,7 @@ public class IndexUpserter
         _logger.LogTrace($"Generating embedding for text: {text}");
 
         var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployment, [text]));
-        
+
         return response.Value.Data[0].Embedding;
     }
 

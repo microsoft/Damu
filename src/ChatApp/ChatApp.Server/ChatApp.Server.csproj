@@ -7,6 +7,7 @@
     <SpaRoot>..\chatapp.client</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:5173</SpaProxyServerUrl>
+    <UserSecretsId>2c403ba1-0245-44c5-b411-1bb5d2b7a33b</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

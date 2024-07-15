@@ -1,5 +1,6 @@
 ﻿using ChatApp.Server.Models;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Options;
 
 namespace ChatApp.Server.Services;
 
@@ -12,17 +13,17 @@ internal class CosmosConversationService
     private readonly string _databaseId;
     private readonly string _containerId;
 
-    public CosmosConversationService(ILogger<CosmosConversationService> logger, CosmosClient cosmosClient, string databaseId, string containerId)
+    public CosmosConversationService(ILogger<CosmosConversationService> logger, CosmosClient cosmosClient, IOptions<CosmosOptions> cosmosOptions)
     {
         _logger = logger;
         _cosmosClient = cosmosClient;
-        _databaseId = databaseId;
-        _containerId = containerId;
-        _database = _cosmosClient.GetDatabase(databaseId);
-        _container = _cosmosClient.GetContainer(databaseId, containerId);
+        _databaseId = cosmosOptions.Value.CosmosDatabaseId;
+        _containerId = cosmosOptions.Value.CosmosContainerId;
+        _database = _cosmosClient.GetDatabase(_databaseId);
+        _container = _cosmosClient.GetContainer(_databaseId, _containerId);
     }
 
-    /*
+
     internal async Task<(bool, Exception?)> EnsureAsync()
     {
         if (_cosmosClient == null || _database == null || _container == null)
@@ -101,12 +102,12 @@ internal class CosmosConversationService
         }
     }
 
-    internal async Task<IList<Message>> GetMessagesAsync(string userId, string conversationId)
+    internal async Task<IList<HistoryMessage>> GetMessagesAsync(string userId, string conversationId)
     {
         await Task.Delay(0);
 
         // todo: check this... feels like it could use some kind of async call?
-        var messages = _container.GetItemLinqQueryable<Message>()
+        var messages = _container.GetItemLinqQueryable<HistoryMessage>()
             .Where(m => m.ConversationId == conversationId && m.UserId == userId)
             .OrderBy(m => m.CreatedAt)
             .ToList();
@@ -146,20 +147,17 @@ internal class CosmosConversationService
         return conversation;
     }
 
-    public async Task<bool> UpdateMessageFeedback(string userId, string messageId, string feedback)
+    public async Task<HistoryMessage?> UpdateMessageFeedbackAsync(string userId, string messageId, string feedback)
     {
-        var message = await _container.ReadItemAsync<Message>(messageId, new PartitionKey(userId));
+        var message = await _container.ReadItemAsync<HistoryMessage>(messageId, new PartitionKey(userId));
 
-        if (message != null)
-        {
-            message.Resource.Feedback = feedback;
-            var response = await _container.UpsertItemAsync(message.Resource);
-            return response != null;
-        }
-        else
-        {
-            return false;
-        }
+        if (message == null)
+            return null;
+
+        message.Resource.Feedback = feedback;
+        var response = await _container.UpsertItemAsync(message.Resource);
+
+        return response.Resource;
     }
 
     public async Task<bool> EnableMessageFeedbackAsync(string userId, string messageId)
@@ -180,7 +178,7 @@ internal class CosmosConversationService
         //        else:
         //            return False
 
-        var message = await _container.ReadItemAsync<Message>(messageId, new PartitionKey(userId));
+        var message = await _container.ReadItemAsync<HistoryMessage>(messageId, new PartitionKey(userId));
 
         if (message != null)
         {
@@ -193,5 +191,5 @@ internal class CosmosConversationService
             return false;
         }
     }
-    */
+
 }

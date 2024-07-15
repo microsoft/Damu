@@ -1,9 +1,9 @@
 ﻿
 using ChatApp.Server.Models;
-using Microsoft.AspNetCore.Http.Headers;
-using Microsoft.VisualBasic;
-using System;
-using System.Collections.Generic;
+using ChatApp.Server.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 using System.Text.Json;
 
 namespace ChatApp.Server;
@@ -12,7 +12,7 @@ public static partial class Endpoints
 {
     public static WebApplication MapHistoryEndpoints(this WebApplication app)
     {
-        app.MapGet("/history/ensure", GetEnsureHistory);
+        app.MapGet("/history/ensure", GetEnsureHistoryAsync);
 
         // Not implemented
         app.MapPost("/history/generate", GenerateHistory);
@@ -28,48 +28,14 @@ public static partial class Endpoints
         return app;
     }
 
-    private static IResult GetEnsureHistory(HttpContext httpContext)
+    private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService conversationService)
     {
-        //if not app_settings.chat_history:
-        //    return jsonify({ "error": "CosmosDB is not configured"}), 404
+        // todo: refactor the UI so that this is can be refactored to make any amount of sense...
+        var (cosmosIsConfigured, exception) = await conversationService.EnsureAsync();
 
-        //try:
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    success, err = await cosmos_conversation_client.ensure()
-        //    if not cosmos_conversation_client or not success:
-        //        if err:
-        //            return jsonify({ "error": err}), 422
-        //        return jsonify({ "error": "CosmosDB is not configured or not working"}), 500
-
-        //    await cosmos_conversation_client.cosmosdb_client.close()
-        //    return jsonify({ "message": "CosmosDB is configured and working"}), 200
-        //except Exception as e:
-        //    logging.exception("Exception in /history/ensure")
-        //    cosmos_exception = str(e)
-        //    if "Invalid credentials" in cosmos_exception:
-        //    return jsonify({ "error": cosmos_exception}), 401
-        //    elif "Invalid CosmosDB database name" in cosmos_exception:
-        //    return (
-        //        jsonify(
-        //                {
-        //        "error": f"{cosmos_exception} {app_settings.chat_history.database} for account {app_settings.chat_history.account}"
-        //                }
-        //            ),
-        //            422,
-        //        )
-        //    elif "Invalid CosmosDB container name" in cosmos_exception:
-        //    return (
-        //        jsonify(
-        //                {
-        //        "error": f"{cosmos_exception}: {app_settings.chat_history.conversations_container}"
-        //                }
-        //            ),
-        //            422,
-        //        )
-        //    else:
-        //        return jsonify({ "error": "CosmosDB is not working"}), 500
-        string response = @"{ ""error"": ""CosmosDB is not configured""}";
-        return Results.NotFound(System.Text.Json.JsonSerializer.Deserialize<object>(response));
+        return cosmosIsConfigured
+            ? Results.Ok(JsonSerializer.Deserialize<object>(@"{ ""converation"": ""CosmosDB is configured and working""}"))
+            : Results.NotFound(JsonSerializer.Deserialize<object>(@"{ ""error"": ""CosmosDB is not configured""}"));
     }
 
     #region NotImplemented
@@ -285,99 +251,41 @@ public static partial class Endpoints
         throw new NotImplementedException();
     }
 
-    private static async Task DeleteHistory(HttpContext context)
+    private static async Task<IActionResult> DeleteHistory(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
-        //## get the user id from the request headers
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
+        var user = GetUser(context);
 
-        //## check request for conversation_id
-        //request_json = await request.get_json()
-        //conversation_id = request_json.get("conversation_id", None)
+        if (user == null)
+            return new UnauthorizedResult();
 
-        //try:
-        //    if not conversation_id:
-        //        return jsonify({ "error": "conversation_id is required"}), 400
+        var converation = await context.GetFromRequestJsonAsync<Conversation>();
 
-        //    ## make sure cosmos is configured
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
+        var deletedConvo = await conversationService.DeleteConversationAsync(user.UserPrincipalId, converation.Id);
 
-        //    ## delete the conversation messages from cosmos first
-        //    deleted_messages = await cosmos_conversation_client.delete_messages(
-        //        conversation_id, user_id
-        //    )
+        var response = new
+        {
+            message = "Successfully deleted conversation and messages",
+            conversation_id = converation.Id
+        };
 
-        //    ## Now delete the conversation
-        //    deleted_conversation = await cosmos_conversation_client.delete_conversation(
-        //        user_id, conversation_id
-        //    )
-
-        //    await cosmos_conversation_client.cosmosdb_client.close()
-
-        //    return (
-        //        jsonify(
-        //            {
-        //        "message": "Successfully deleted conversation and messages",
-        //                "conversation_id": conversation_id,
-        //            }
-        //        ),
-        //        200,
-        //    )
-        //except Exception as e:
-        //    logging.exception("Exception in /history/delete")
-        //    return jsonify({ "error": str(e)}), 500
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return new OkObjectResult(response);
     }
 
-    private static async Task MessageFeedback(HttpContext context)
+    private static async Task<IActionResult> MessageFeedback(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
-        //cosmos_conversation_client = init_cosmosdb_client()
+        var user = GetUser(context);
 
-        //## check request for message_id
-        //request_json = await request.get_json()
-        //message_id = request_json.get("message_id", None)
-        //message_feedback = request_json.get("message_feedback", None)
-        //try:
-        //    if not message_id:
-        //        return jsonify({ "error": "message_id is required"}), 400
+        if (user == null)
+            return new UnauthorizedResult();
 
-        //    if not message_feedback:
-        //        return jsonify({ "error": "message_feedback is required"}), 400
+        // todo: identify what the incoming request should look like
+        var message = await context.GetFromRequestJsonAsync<HistoryMessage>();
 
-        //    ## update the message in cosmos
-        //    updated_message = await cosmos_conversation_client.update_message_feedback(
-        //        user_id, message_id, message_feedback
-        //    )
-        //    if updated_message:
-        //        return (
-        //            jsonify(
-        //                {
-        //        "message": f"Successfully updated message with feedback {message_feedback}",
-        //                    "message_id": message_id,
-        //                }
-        //            ),
-        //            200,
-        //        )
-        //    else:
-        //        return (
-        //            jsonify(
-        //                {
-        //        "error": f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."
-        //                }
-        //            ),
-        //            404,
-        //        )
+        var updatedMessage = await conversationService.UpdateMessageFeedbackAsync(user.UserPrincipalId, message.Id, message.Feedback);
 
-        //except Exception as e:
-        //    logging.exception("Exception in /history/message_feedback")
-        //    return jsonify({ "error": str(e)}), 500
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return updatedMessage != null
+            ? new OkObjectResult(updatedMessage)
+            : new NotFoundResult();
     }
 
     private static async Task UpdateHistory(HttpContext context)
@@ -433,38 +341,54 @@ public static partial class Endpoints
         throw new NotImplementedException();
     }
 
-    private static async Task GenerateHistory(HttpContext context)
+    private static async Task<T?> GetFromRequestJsonAsync<T>(this HttpContext context)
+    {
+        using var streamReader = new StreamReader(context.Request.Body);
+
+        var json = await streamReader.ReadToEndAsync();
+
+        var obj = JsonSerializer.Deserialize<T>(json);
+
+        return obj;
+    }
+
+    private static async Task<IActionResult> GenerateHistory(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
         var authenticated_user = GetUser(context);
         var user_id = authenticated_user.UserPrincipalId;
 
         // check request for conversation_id
-        using var streamReader = new StreamReader(context.Request.Body);
-        var str = await streamReader.ReadToEndAsync();
+
         // mj: what should request body look like?
-        var request_json = JsonSerializer.Deserialize<Dictionary<string, object>>(str);
-        var conversation_id = request_json["conversation_id"];
+        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
-        //    try:
-        //        # make sure cosmos is configured
-        //        cosmos_conversation_client = init_cosmosdb_client()
-        //        if not cosmos_conversation_client:
-        //            raise Exception("CosmosDB is not configured or not working")
+        // todo: better handling of bad reqs
+        if (conversation == null)
+            return new BadRequestResult();
 
-        //        # check for the conversation_id, if the conversation is not set, we will create a new one
-        //        history_metadata = { }
-        //        if not conversation_id:
-        //            title = await generate_title(request_json["messages"])
-        //            conversation_dict = await cosmos_conversation_client.create_conversation(
-        //                user_id = user_id, title = title
-        //            )
-        //            conversation_id = conversation_dict["id"]
-        //            history_metadata["title"] = title
-        //            history_metadata["date"] = conversation_dict["createdAt"]
+        var history_metadata = new Dictionary<string, object>();
 
-        //        ## Format the incoming message object in the "chat/completions" messages format
-        //        ## then write it to the conversation history in cosmos
-        //        messages = request_json["messages"]
+        if (string.IsNullOrWhiteSpace(conversation.Id))
+        {
+            var title = await GenerateTitleAsync(conversation.Messages);
+            var newConversation = await conversationService.CreateConversationAsync(user_id, title);
+            history_metadata["title"] = conversation.Title;
+            history_metadata["date"] = conversation.CreatedAt;
+        }
+
+        // Format the incoming message object in the "chat/completions" messages format
+        // then write it to the conversation history in cosmos
+
+        //if (conversation.Messages.Count > 0 && conversation.Messages[0].Role == "User") // move role format to enum?
+        //{
+            // todo: sort out the 
+            //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
+
+
+        //}
+
+        // todo: build out history and send to conversations endpoint
+
         //        if len(messages) > 0 and messages[-1]["role"] == "user":
         //            createdMessageValue = await cosmos_conversation_client.create_message(
         //                uuid = str(uuid.uuid4()),
@@ -493,6 +417,12 @@ public static partial class Endpoints
         //        logging.exception("Exception in /history/generate")
         //        return jsonify({ "error": str(e)}), 500
 
+        await Task.Delay(0);
+        throw new NotImplementedException();
+    }
+
+    private static async Task<string> GenerateTitleAsync(object messages)
+    {
         await Task.Delay(0);
         throw new NotImplementedException();
     }

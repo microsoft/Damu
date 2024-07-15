@@ -22,7 +22,7 @@ public static partial class Endpoints
         app.MapGet("/history/list", ListHistory);
         app.MapPost("/history/read", ReadHistory);
         app.MapPost("/history/rename", RenameHistory);
-        app.MapDelete("/history/delete_all", DeleteAllHistory);
+        app.MapDelete("/history/delete_all", DeleteAllHistoryAsync);
         app.MapPost("/history/clear", ClearHistoryAsync);
 
         return app;
@@ -46,7 +46,6 @@ public static partial class Endpoints
 
         if (user == null)
             return new UnauthorizedResult();
-        //conversation_id = request_json.get("conversation_id", None)
 
         // check request for conversation_id
         var conversation = await context.GetFromRequestJsonAsync<Conversation>();
@@ -64,49 +63,20 @@ public static partial class Endpoints
             : new NotFoundResult();
     }
 
-    private static async Task DeleteAllHistory(HttpContext context)
+    private static async Task<IActionResult> DeleteAllHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
-        //## get the user id from the request headers
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
+        // get the user id from the request headers
+        var user = GetUser(context);
 
-        //# get conversations for user
-        //try:
-        //    ## make sure cosmos is configured
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
+        if (user == null)
+            return new UnauthorizedResult();
 
-        //    conversations = await cosmos_conversation_client.get_conversations(
-        //        user_id, offset = 0, limit = None
-        //    )
-        //    if not conversations:
-        //        return jsonify({ "error": f"No conversations for {user_id} were found"}), 404
+        await conversationService.DeleteConversationsAsync(user.UserPrincipalId);
 
-        //    # delete each conversation
-        //    for conversation in conversations:
-        //        ## delete the conversation messages from cosmos first
-        //        deleted_messages = await cosmos_conversation_client.delete_messages(
-        //            conversation["id"], user_id
-        //        )
-
-        //        ## Now delete the conversation
-        //        deleted_conversation = await cosmos_conversation_client.delete_conversation(
-        //            user_id, conversation["id"]
-        //        )
-        //    await cosmos_conversation_client.cosmosdb_client.close()
-        //    return (
-        //        jsonify(
-        //            {
-        //        "message": f"Successfully deleted conversation and messages for user {user_id}"
-        //            }
-        //        ),
-        //        200,
-        //    )
-
-        //except Exception as e:
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return new OkObjectResult(new
+        {
+            message = $"Successfully deleted conversation and messages for user {user.UserPrincipalId}"
+        });
     }
 
     private static async Task RenameHistory(HttpContext context)
@@ -366,8 +336,8 @@ public static partial class Endpoints
 
         //if (conversation.Messages.Count > 0 && conversation.Messages[0].Role == "User") // move role format to enum?
         //{
-            // todo: sort out the 
-            //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
+        // todo: sort out the 
+        //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
 
 
         //}

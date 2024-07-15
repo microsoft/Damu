@@ -1,3 +1,6 @@
+using Azure.Identity;
+using ChatApp.Server.Services;
+using Microsoft.Azure.Cosmos;
 
 namespace ChatApp.Server;
 
@@ -13,6 +16,13 @@ public class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        //builder.Services.AddTransient(services => new CosmosClient("", new DefaultAzureCredential()));
+        //builder.Services.AddTransient(services =>
+        //{
+
+        //    //ILogger<CosmosConversationService> logger, CosmosClient cosmosClient, string databaseId, string containerId
+        //    return new CosmosConversationService(builder.Configuration["Cosmos:Endpoint"], builder.Configuration["Cosmos:Key"]);
+        //});
 
         var app = builder.Build();
 

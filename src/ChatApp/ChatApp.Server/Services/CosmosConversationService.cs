@@ -73,6 +73,7 @@ internal class CosmosConversationService
 
     internal async Task<bool> DeleteConversationAsync(string userId, string conversationId)
     {
+        // todo: make sure we delete related messages as well
         var conversation = await _container.ReadItemAsync<Conversation>(conversationId, new PartitionKey(userId));
 
         if (conversation != null)
@@ -84,6 +85,22 @@ internal class CosmosConversationService
         {
             return true;
         }
+    }
+
+    internal async Task<bool> DeleteConversationsAsync(string userId)
+    {
+        // todo: is return type of bool worthwile?
+        var conversations = _container.GetItemLinqQueryable<Conversation>()
+           .Where(m => m.UserId == userId)
+           .OrderBy(m => m.CreatedAt)
+           .ToList();
+
+        foreach (var conversation in conversations)
+        {
+            var response = await _container.DeleteItemAsync<Conversation>(conversation.Id, new PartitionKey(userId));
+        }
+
+        return true;
     }
 
     internal async Task DeleteMessagesAsync(string conversationId, string userId)

@@ -1,5 +1,6 @@
 ﻿using ChatApp.Server.Models;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Options;
 
 namespace ChatApp.Server.Services;
 
@@ -12,14 +13,14 @@ internal class CosmosConversationService
     private readonly string _databaseId;
     private readonly string _containerId;
 
-    public CosmosConversationService(ILogger<CosmosConversationService> logger, CosmosClient cosmosClient, string databaseId, string containerId)
+    public CosmosConversationService(ILogger<CosmosConversationService> logger, CosmosClient cosmosClient, IOptions<CosmosOptions> cosmosOptions)
     {
         _logger = logger;
         _cosmosClient = cosmosClient;
-        _databaseId = databaseId;
-        _containerId = containerId;
-        _database = _cosmosClient.GetDatabase(databaseId);
-        _container = _cosmosClient.GetContainer(databaseId, containerId);
+        _databaseId = cosmosOptions.Value.CosmosDatabaseId;
+        _containerId = cosmosOptions.Value.CosmosContainerId;
+        _database = _cosmosClient.GetDatabase(_databaseId);
+        _container = _cosmosClient.GetContainer(_databaseId, _containerId);
     }
 
     /*

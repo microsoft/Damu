@@ -1,9 +1,7 @@
 ﻿
 using ChatApp.Server.Models;
-using Microsoft.AspNetCore.Http.Headers;
-using Microsoft.VisualBasic;
-using System;
-using System.Collections.Generic;
+using ChatApp.Server.Services;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
 namespace ChatApp.Server;
@@ -12,7 +10,7 @@ public static partial class Endpoints
 {
     public static WebApplication MapHistoryEndpoints(this WebApplication app)
     {
-        app.MapGet("/history/ensure", GetEnsureHistory);
+        app.MapGet("/history/ensure", GetEnsureHistoryAsync);
 
         // Not implemented
         app.MapPost("/history/generate", GenerateHistory);
@@ -28,48 +26,24 @@ public static partial class Endpoints
         return app;
     }
 
-    private static IResult GetEnsureHistory(HttpContext httpContext)
+    private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService conversationService)
     {
-        //if not app_settings.chat_history:
-        //    return jsonify({ "error": "CosmosDB is not configured"}), 404
+        try
+        {
+            var (cosmosIsConfigured, exception) = await conversationService.EnsureAsync();
 
-        //try:
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    success, err = await cosmos_conversation_client.ensure()
-        //    if not cosmos_conversation_client or not success:
-        //        if err:
-        //            return jsonify({ "error": err}), 422
-        //        return jsonify({ "error": "CosmosDB is not configured or not working"}), 500
+            // todo: refactor the UI so that this is can be refactored to make any amount of sense...
 
-        //    await cosmos_conversation_client.cosmosdb_client.close()
-        //    return jsonify({ "message": "CosmosDB is configured and working"}), 200
-        //except Exception as e:
-        //    logging.exception("Exception in /history/ensure")
-        //    cosmos_exception = str(e)
-        //    if "Invalid credentials" in cosmos_exception:
-        //    return jsonify({ "error": cosmos_exception}), 401
-        //    elif "Invalid CosmosDB database name" in cosmos_exception:
-        //    return (
-        //        jsonify(
-        //                {
-        //        "error": f"{cosmos_exception} {app_settings.chat_history.database} for account {app_settings.chat_history.account}"
-        //                }
-        //            ),
-        //            422,
-        //        )
-        //    elif "Invalid CosmosDB container name" in cosmos_exception:
-        //    return (
-        //        jsonify(
-        //                {
-        //        "error": f"{cosmos_exception}: {app_settings.chat_history.conversations_container}"
-        //                }
-        //            ),
-        //            422,
-        //        )
-        //    else:
-        //        return jsonify({ "error": "CosmosDB is not working"}), 500
-        string response = @"{ ""error"": ""CosmosDB is not configured""}";
-        return Results.NotFound(System.Text.Json.JsonSerializer.Deserialize<object>(response));
+            return cosmosIsConfigured
+                ? Results.Ok(JsonSerializer.Deserialize<object>(@"{ ""message"": ""CosmosDB is configured and working""}"))
+                : Results.NotFound(JsonSerializer.Deserialize<object>(@"{ ""error"": ""CosmosDB is not configured""}"));
+        }
+        catch (Exception exception)
+        {
+            // todo: add logger...?
+
+            throw;
+        }
     }
 
     #region NotImplemented

@@ -23,7 +23,7 @@ internal class CosmosConversationService
         _container = _cosmosClient.GetContainer(_databaseId, _containerId);
     }
 
-    /*
+
     internal async Task<(bool, Exception?)> EnsureAsync()
     {
         if (_cosmosClient == null || _database == null || _container == null)
@@ -102,12 +102,12 @@ internal class CosmosConversationService
         }
     }
 
-    internal async Task<IList<Message>> GetMessagesAsync(string userId, string conversationId)
+    internal async Task<IList<HistoryMessage>> GetMessagesAsync(string userId, string conversationId)
     {
         await Task.Delay(0);
 
         // todo: check this... feels like it could use some kind of async call?
-        var messages = _container.GetItemLinqQueryable<Message>()
+        var messages = _container.GetItemLinqQueryable<HistoryMessage>()
             .Where(m => m.ConversationId == conversationId && m.UserId == userId)
             .OrderBy(m => m.CreatedAt)
             .ToList();
@@ -147,9 +147,9 @@ internal class CosmosConversationService
         return conversation;
     }
 
-    public async Task<Message?> UpdateMessageFeedbackAsync(string userId, string messageId, string feedback)
+    public async Task<HistoryMessage?> UpdateMessageFeedbackAsync(string userId, string messageId, string feedback)
     {
-        var message = await _container.ReadItemAsync<Message>(messageId, new PartitionKey(userId));
+        var message = await _container.ReadItemAsync<HistoryMessage>(messageId, new PartitionKey(userId));
 
         if (message == null)
             return null;
@@ -178,7 +178,7 @@ internal class CosmosConversationService
         //        else:
         //            return False
 
-        var message = await _container.ReadItemAsync<Message>(messageId, new PartitionKey(userId));
+        var message = await _container.ReadItemAsync<HistoryMessage>(messageId, new PartitionKey(userId));
 
         if (message != null)
         {
@@ -191,5 +191,5 @@ internal class CosmosConversationService
             return false;
         }
     }
-    */
+
 }

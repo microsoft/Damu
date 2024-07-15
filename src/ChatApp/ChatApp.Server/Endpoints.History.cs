@@ -279,7 +279,7 @@ public static partial class Endpoints
             return new UnauthorizedResult();
 
         // todo: identify what the incoming request should look like
-        var message = await context.GetFromRequestJsonAsync<Message>();
+        var message = await context.GetFromRequestJsonAsync<HistoryMessage>();
 
         var updatedMessage = await conversationService.UpdateMessageFeedbackAsync(user.UserPrincipalId, message.Id, message.Feedback);
 

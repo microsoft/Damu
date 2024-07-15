@@ -18,5 +18,11 @@ public class Conversation
     [JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
     [JsonPropertyName("messages")]
-    public List<Message> Messages { get; set; } = new List<Message>();
+    public List<Message> Messages { get; set; } = [];
+}
+
+public class ConversationRequest
+{
+    [JsonPropertyName("messages")]
+    public List<Message> Messages { get; set; } = [];
 }

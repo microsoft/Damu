@@ -19,8 +19,9 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> PostConversation(
-        [FromServices] IChatCompletionService chat,
-        [FromServices] AzureSearchService search)
+        [FromServices] IChatService chat,
+        [FromServices] AzureSearchService search,
+        [FromBody] ConversationRequest history)
     {
         // do the search here
         //var searchResults = await search.QueryDocumentsAsync("search query");
@@ -28,26 +29,7 @@ public static partial class Endpoints
         // TODO: add the phancy plugins and stuff HERE <--
         // call completion??
         // 
-        return Results.Ok(await chat.CompleteChat("It works!"));
-    }
-
-    private static IResult GetFrontEndSettings(HttpContext httpContext)
-    {
-        var settings = new FrontendSettings
-        {
-            AuthEnabled = false,
-            FeedbackEnabled = false,
-            Ui = new UiSettings
-            {
-                Title = "Damu",
-                ChatTitle = "Start chatting",
-                ChatDescription = "This chatbot is configured to answer your questions",
-                ShowShareButton = true
-            },
-            SanitizeAnswer = false
-        };
-
-        return Results.Json(settings);
+        return Results.Ok(await chat.CompleteChat([.. history.Messages]));
     }
 
 }

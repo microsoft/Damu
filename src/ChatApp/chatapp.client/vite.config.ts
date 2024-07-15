@@ -50,6 +50,10 @@ export default defineConfig({
             '^/history/*': {
                 target,
                 secure: false
+            },
+            '^/conversation': {
+                target,
+                secure: false
             }
         },
         port: 5173,

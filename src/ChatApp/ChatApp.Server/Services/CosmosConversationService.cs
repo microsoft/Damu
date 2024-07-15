@@ -22,6 +22,7 @@ internal class CosmosConversationService
         _container = _cosmosClient.GetContainer(databaseId, containerId);
     }
 
+    /*
     internal async Task<(bool, Exception?)> EnsureAsync()
     {
         if (_cosmosClient == null || _database == null || _container == null)
@@ -192,4 +193,5 @@ internal class CosmosConversationService
             return false;
         }
     }
+    */
 }

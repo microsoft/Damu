@@ -4,11 +4,10 @@ using ChatApp.Server.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using OpenAI.Chat;
 
 namespace ChatApp.Server.Services;
 
-public class ChatCompletionService : IChatCompletionService
+public class ChatCompletionService : IChatService
 {
     private Kernel _kernel;
     private PromptExecutionSettings _promptSettings;
@@ -26,29 +25,60 @@ public class ChatCompletionService : IChatCompletionService
 
         var builder = Kernel.CreateBuilder();
 
-        //var deployedModelName = config["AZURE_OPENAI_CHATGPT_DEPLOYMENT"];
-        //ArgumentNullException.ThrowIfNullOrWhiteSpace(deployedModelName);
-        //var embeddingModelName = config["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"];
-        //if (!string.IsNullOrEmpty(embeddingModelName))
-        //{
-        //    var endpoint = config["AZURE_OPENAI_ENDPOINT"];
-        //    ArgumentNullException.ThrowIfNullOrWhiteSpace(endpoint);
-        //    builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
-        //    builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
-        //}
+        var deployedModelName = config["AZURE_OPENAI_CHATGPT_DEPLOYMENT"];
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(deployedModelName);
+        var embeddingModelName = config["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"];
+        if (!string.IsNullOrEmpty(embeddingModelName))
+        {
+            var endpoint = config["AZURE_OPENAI_ENDPOINT"];
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(endpoint);
+            builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
+            builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
+        }
 
         _kernel = builder.Build();
     }
 
     public async Task<ChatCompletion> CompleteChat(string prompt)
     {
-        throw new NotImplementedException();
-        //var sysmessage = @"You are a helpful assistant.";
-        //var history = new ChatHistory(sysmessage);
-        //history.AddUserMessage(prompt);
+        var msg = new Message
+        {
+            Id = "0000",
+            Role = "user",
+            Content = prompt,
+            Date = DateTime.UtcNow
+        };
 
-        //var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
-        //var item = response.Items[0];
+        return await CompleteChat([msg]);
+    }
+
+    public async Task<ChatCompletion> CompleteChat(Message[] messages)
+    {
+        var sysmessage = @"You are a helpful assistant.";
+        var history = new ChatHistory(sysmessage);
+        foreach (var message in messages)
+        {
+            history.AddUserMessage(message.Content);
+        }
+
+        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
+        var result = new ChatCompletion
+        {
+            Id = Guid.NewGuid().ToString(),
+            ApimRequestId = Guid.NewGuid().ToString(),
+            Model = response.ModelId!,
+            Created = DateTime.UtcNow,
+            Choices = [new() {
+                Messages = response.Items.Select(item => new Message
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Role = "assistant",
+                    Content = item.ToString()!,
+                    Date = DateTime.UtcNow
+                }).ToList()
+            }]
+        };
+        return result;
     }
 }
 

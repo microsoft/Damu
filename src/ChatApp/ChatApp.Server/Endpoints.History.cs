@@ -1,9 +1,7 @@
 ﻿
 using ChatApp.Server.Models;
 using ChatApp.Server.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text.Json;
 
@@ -41,15 +39,13 @@ public static partial class Endpoints
             : Results.NotFound(JsonSerializer.Deserialize<object>(@"{ ""error"": ""CosmosDB is not configured""}"));
     }
 
-    private static async Task<IActionResult> ClearHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IActionResult> ClearHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
     {
         // get the user id from the request headers
         var user = GetUser(context);
 
         if (user == null)
             return new UnauthorizedResult();
-
-        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
             return new BadRequestObjectResult("conversation_id is required");
@@ -80,14 +76,12 @@ public static partial class Endpoints
         });
     }
 
-    private static async Task<IActionResult> RenameHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IActionResult> RenameHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
     {
         var user = GetUser(context);
 
         if (user == null)
             return new UnauthorizedResult();
-
-        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
             return new BadRequestObjectResult("conversation_id is required");
@@ -100,35 +94,33 @@ public static partial class Endpoints
         return new OkObjectResult(updatedConversation);
     }
 
-    private static async Task<IActionResult> DeleteHistory(HttpContext context, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IActionResult> DeleteHistory(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
     {
         var user = GetUser(context);
 
         if (user == null)
             return new UnauthorizedResult();
 
-        var converation = await context.GetFromRequestJsonAsync<Conversation>();
+        if (string.IsNullOrWhiteSpace(conversation?.Id))
+            return new BadRequestObjectResult("conversation_id is required");
 
-        var deletedConvo = await conversationService.DeleteConversationAsync(user.UserPrincipalId, converation.Id);
+        var deletedConvo = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
 
         var response = new
         {
             message = "Successfully deleted conversation and messages",
-            conversation_id = converation.Id
+            conversation_id = conversation.Id
         };
 
         return new OkObjectResult(response);
     }
 
-    private static async Task<IActionResult> MessageFeedbackAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IActionResult> MessageFeedbackAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] HistoryMessage message)
     {
         var user = GetUser(context);
 
         if (user == null)
             return new UnauthorizedResult();
-
-        // todo: identify what the incoming request should look like
-        var message = await context.GetFromRequestJsonAsync<HistoryMessage>();
 
         var updatedMessage = await conversationService.UpdateMessageFeedbackAsync(user.UserPrincipalId, message.Id, message.Feedback);
 
@@ -136,8 +128,6 @@ public static partial class Endpoints
             ? new OkObjectResult(updatedMessage)
             : new NotFoundResult();
     }
-
-
 
     #region NotImplemented
     private static async Task ReadHistory(HttpContext context)
@@ -274,16 +264,13 @@ public static partial class Endpoints
         throw new NotImplementedException();
     }
 
-    private static async Task<IActionResult> GenerateHistory(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromServices] ChatCompletionService chatCompletionService)
+    private static async Task<IActionResult> GenerateHistory(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromServices] ChatCompletionService chatCompletionService, [FromBody] Conversation conversation)
     {
         var user = GetUser(context);
 
         if (user == null)
             return new UnauthorizedResult();
 
-        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
-
-        // todo: better handling of bad reqs
         if (conversation == null)
             return new BadRequestResult();
 
@@ -291,7 +278,8 @@ public static partial class Endpoints
         {
             var title = await chatCompletionService.GenerateTitleAsync(conversation.Messages);
 
-            var newConversation = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
+            // should we persist user message here too?
+            var dbConversation = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
         }
 
         // Format the incoming message object in the "chat/completions" messages format
@@ -301,12 +289,9 @@ public static partial class Endpoints
 
         //var result = await chatCompletionService.AlternativeCompleteChat(conversation)
 
-
-
         //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
 
         // todo: build out history and send to conversations endpoint
-
 
         //        # Submit request to Chat Completions for response
         //        request_body = await request.get_json()
@@ -342,17 +327,6 @@ public static partial class Endpoints
             ClientPrincipalB64 = context.Request.Headers["X-Ms-Client-Principal"].FirstOrDefault() ?? string.Empty,
             AadIdToken = context.Request.Headers["X-Ms-Token-Aad-Id-Token"].FirstOrDefault() ?? string.Empty
         };
-    }
-
-    private static async Task<T?> GetFromRequestJsonAsync<T>(this HttpContext context)
-    {
-        using var streamReader = new StreamReader(context.Request.Body);
-
-        var json = await streamReader.ReadToEndAsync();
-
-        var obj = JsonSerializer.Deserialize<T>(json);
-
-        return obj;
     }
 
     #endregion

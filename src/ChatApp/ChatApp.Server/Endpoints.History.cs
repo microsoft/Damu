@@ -23,7 +23,7 @@ public static partial class Endpoints
         app.MapPost("/history/read", ReadHistory);
         app.MapPost("/history/rename", RenameHistory);
         app.MapDelete("/history/delete_all", DeleteAllHistory);
-        app.MapPost("/history/clear", ClearHistory);
+        app.MapPost("/history/clear", ClearHistoryAsync);
 
         return app;
     }
@@ -39,44 +39,29 @@ public static partial class Endpoints
     }
 
     #region NotImplemented
-    private static async Task ClearHistory(HttpContext context)
+    private static async Task<IActionResult> ClearHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
-        //## get the user id from the request headers
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
+        // get the user id from the request headers
+        var user = GetUser(context);
 
-        //## check request for conversation_id
-        //request_json = await request.get_json()
+        if (user == null)
+            return new UnauthorizedResult();
         //conversation_id = request_json.get("conversation_id", None)
 
-        //try:
-        //    if not conversation_id:
-        //        return jsonify({ "error": "conversation_id is required"}), 400
+        // check request for conversation_id
+        var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
-        //    ## make sure cosmos is configured
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
+        if (string.IsNullOrWhiteSpace(conversation?.Id))
+            return new BadRequestObjectResult("conversation_id is required");
 
-        //    ## delete the conversation messages from cosmos
-        //    deleted_messages = await cosmos_conversation_client.delete_messages(
-        //        conversation_id, user_id
-        //    )
+        // todo: do conversations and messages need to be deleted separately
+        // or can the conversation delete in the service encompass the messages
+        // delete the conversation messages from cosmos
+        var deleted = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
 
-        //    return (
-        //        jsonify(
-        //            {
-        //        "message": "Successfully deleted messages in conversation",
-        //                "conversation_id": conversation_id,
-        //            }
-        //        ),
-        //        200,
-        //    )
-        //except Exception as e:
-        //    logging.exception("Exception in /history/clear_messages")
-        //    return jsonify({ "error": str(e)}), 500
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return deleted
+            ? new OkObjectResult(new { message = "Successfully deleted messages in conversation", conversation_id = conversation.Id })
+            : new NotFoundResult();
     }
 
     private static async Task DeleteAllHistory(HttpContext context)

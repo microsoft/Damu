@@ -47,6 +47,11 @@ public record ResponseChoice(
     [JsonPropertyName("content_filter_results")]
     public ContentFilterResult? ContentFilterResult { get; set; }
 
+    
+}
+
+public class ContentFilterResult
+{
 }
 
 public record ChatAppResponse(ResponseChoice[] Choices);

@@ -1,4 +1,6 @@
-﻿public class FunctionSettings
+﻿namespace Api.Models;
+
+public class FunctionSettings
 {
     public FunctionSettings()
     {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ChatApp.Server;
+namespace ChatApp.Server.Models;
 
 public class FrontendSettings
 {

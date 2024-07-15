@@ -148,29 +148,22 @@ internal class CosmosConversationService
         return messages;
     }
 
-    public async Task<IList<Conversation>> GetConversationsAsync(string userId, int limit, string sortOrder = "DESC", int offset = 0)
+    public async IAsyncEnumerable<Conversation>GetConversationsAsync(string userId, int limit, string sortOrder = "DESC", int offset = 0)
     {
-        await Task.Delay(0);
+        var query = new QueryDefinition(
+            query: $"SELECT * FROM {_container.Id} c WHERE c.userId = @userid AND c.type = @type"
+        )
+        .WithParameter("@userid", userId)
+        .WithParameter("@type", "conversation");
 
-        // todo: check this... feels like it could use some kind of async call?
-        var conversations = _container.GetItemLinqQueryable<Conversation>()
-            .Where(c => c.UserId == userId && c.Type == "conversation")
-            .OrderBy(c => c.UpdatedAt)
-            .ToList();
-
-        return conversations;
-        //var query = new QueryDefinition("SELECT * FROM c where c.userId = @userId and c.type='conversation' order by c.updatedAt " + sortOrder);
-        //query.WithParameter("@userId", userId);
-
-
-        //var conversations = new List<Conversation>();
-
-        //await foreach (var item in _container.GetItemQueryIterator<Conversation>(query))
-        //{
-        //    conversations.Add(item);
-        //}
-
-        //return conversations;
+        using FeedIterator<Conversation> feed = _container.GetItemQueryIterator<Conversation>(query);
+        while (feed.HasMoreResults)
+        {
+            foreach (var session in await feed.ReadNextAsync())
+            {
+                yield return session;
+            }
+        }        
     }
 
     public async Task<Conversation> GetConversationAsync(string userId, string conversationId)

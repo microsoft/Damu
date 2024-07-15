@@ -1,3 +1,4 @@
+using Api.Models;
 using API;
 using Azure;
 using Azure.AI.DocumentIntelligence;

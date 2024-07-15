@@ -1,6 +1,6 @@
 namespace ChatApp.Server.Models;
 
-public class ChatCompletionModel
+public class ChatCompletion
 {
     public string Id { get; set; }
     public string Model { get; set; }
@@ -13,10 +13,5 @@ public class ChatCompletionModel
 
 public class ChoiceModel
 {
-    public List<MessageModel> Messages { get; set; }
-}
-
-public class MessageModel
-{
-    // Define properties for the message object if needed
+    public List<Message> Messages { get; set; }
 }

@@ -10,7 +10,7 @@ internal static class OpenAiExtensions
     {
         var defaultAzureCreds = new DefaultAzureCredential();
 
-        services.AddSingleton<IChatCompletionService, OpenAIChatCompletionService>();
+        services.AddSingleton<IChatService, ChatCompletionService>();
 
         services.AddSingleton(sp =>
         {

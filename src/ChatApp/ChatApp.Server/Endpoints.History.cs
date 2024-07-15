@@ -12,20 +12,18 @@ public static partial class Endpoints
 {
     public static WebApplication MapHistoryEndpoints(this WebApplication app)
     {
-        app.MapGroup("history");
-
-        app.MapGet("ensure", GetEnsureHistory);
+        app.MapGet("/history/ensure", GetEnsureHistory);
 
         // Not implemented
-        app.MapPost("generate", GenerateHistory);
-        app.MapPost("update", UpdateHistory);
-        app.MapPost("message_feedback", MessageFeedback);
-        app.MapDelete("delete", DeleteHistory);
-        app.MapGet("list", ListHistory);
-        app.MapPost("read", ReadHistory);
-        app.MapPost("rename", RenameHistory);
-        app.MapDelete("delete_all", DeleteAllHistory);
-        app.MapPost("clear", ClearHistory);
+        app.MapPost("/history/generate", GenerateHistory);
+        app.MapPost("/history/update", UpdateHistory);
+        app.MapPost("/history/message_feedback", MessageFeedback);
+        app.MapDelete("/history/delete", DeleteHistory);
+        app.MapGet("/history/list", ListHistory);
+        app.MapPost("/history/read", ReadHistory);
+        app.MapPost("/history/rename", RenameHistory);
+        app.MapDelete("/history/delete_all", DeleteAllHistory);
+        app.MapPost("/history/clear", ClearHistory);
 
         return app;
     }

@@ -1,0 +1,30 @@
+{
+    "citations": [
+        {
+            "content": "", 
+            "title": "", 
+            "url": "", 
+            "filepath": "", 
+            "chunk_id": "0"
+        }, 
+        {
+            "content": "", 
+            "title": "", 
+            "url": "", 
+            "filepath": "", 
+            "chunk_id": "0"
+        }, 
+        {
+            "content": "", 
+            "title": "", 
+            "url": "", 
+            "filepath": "", 
+            "chunk_id": "0"
+        }
+    ], 
+    "intent": [
+        "neurology department contact", 
+        "neurology contact person", 
+        "who is the contact for neurology department"
+    ]
+}

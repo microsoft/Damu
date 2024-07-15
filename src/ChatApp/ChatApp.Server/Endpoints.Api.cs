@@ -31,7 +31,7 @@ public static partial class Endpoints
         [FromBody] ConversationRequest history)
     {
         // do the search here
-        //var searchResults = await search.QueryDocumentsAsync("search query");
+        var searchResults = await search.QueryDocumentsAsync("query", cancellationToken: default);
         // stuff results into the ChatHistory[]
         // TODO: add the phancy plugins and stuff HERE <--
         // call completion??

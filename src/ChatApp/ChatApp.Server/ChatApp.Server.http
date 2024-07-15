@@ -1,6 +1,15 @@
 @ChatApp.Server_HostAddress = http://localhost:5278
 
-GET {{ChatApp.Server_HostAddress}}/weatherforecast/
+POST {{ChatApp.Server_HostAddress}}/conversation/
 Accept: application/json
-
+{
+  "messages": [
+    {
+      "id": "11111111111111",
+      "role": "user",
+      "content": "what is the meaning of life",
+      "date": "2024-07-15T19:13:12.943Z"
+    }
+  ]
+}
 ###

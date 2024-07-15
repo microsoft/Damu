@@ -147,20 +147,17 @@ internal class CosmosConversationService
         return conversation;
     }
 
-    public async Task<bool> UpdateMessageFeedback(string userId, string messageId, string feedback)
+    public async Task<Message?> UpdateMessageFeedbackAsync(string userId, string messageId, string feedback)
     {
         var message = await _container.ReadItemAsync<Message>(messageId, new PartitionKey(userId));
 
-        if (message != null)
-        {
-            message.Resource.Feedback = feedback;
-            var response = await _container.UpsertItemAsync(message.Resource);
-            return response != null;
-        }
-        else
-        {
-            return false;
-        }
+        if (message == null)
+            return null;
+
+        message.Resource.Feedback = feedback;
+        var response = await _container.UpsertItemAsync(message.Resource);
+
+        return response.Resource;
     }
 
     public async Task<bool> EnableMessageFeedbackAsync(string userId, string messageId)

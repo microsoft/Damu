@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-07-12T16:49:49.256Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.6.4 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="MDW9TDAo90Y0IafDfijt" version="24.6.4" type="device" pages="2">
+<mxfile host="Electron" modified="2024-07-15T14:09:41.226Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.6.4 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="XHYQ1h4xdMnSm26hQjFS" version="24.6.4" type="device" pages="2">
   <diagram name="App Architecture" id="knbC3O-Lj_oitgsU8qSy">
     <mxGraphModel dx="989" dy="577" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -110,6 +110,15 @@
         </mxCell>
         <mxCell id="1WBhgeQcPxYnnlbh7PHG-1" value="&lt;div&gt;Backend&lt;/div&gt;&lt;div&gt;Orchestration&lt;/div&gt;&lt;div&gt;API&lt;br&gt;&lt;/div&gt;" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/App_Services.svg;labelPosition=center;verticalLabelPosition=top;verticalAlign=bottom;" vertex="1" parent="1">
           <mxGeometry x="510" y="211" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dcRyy13a1EGt6oJRzYIp-1" value="Optional for&lt;div&gt;Chat History&lt;/div&gt;&lt;div&gt;Support&lt;/div&gt;" style="edgeStyle=orthogonalEdgeStyle;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1.096;exitY=0.737;exitDx=0;exitDy=0;exitPerimeter=0;endArrow=none;endFill=0;dashed=1;fontSize=9;" edge="1" parent="1" target="dcRyy13a1EGt6oJRzYIp-2" source="1WBhgeQcPxYnnlbh7PHG-1">
+          <mxGeometry x="0.7169" y="31" relative="1" as="geometry">
+            <mxPoint x="653" y="283.5" as="sourcePoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dcRyy13a1EGt6oJRzYIp-2" value="Cosmos DB" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Cosmos_DB.svg;" vertex="1" parent="1">
+          <mxGeometry x="651" y="320.5" width="58" height="58" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

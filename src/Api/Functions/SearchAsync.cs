@@ -70,19 +70,22 @@ public partial class SearchAsync
             }
         };
 
-        _logger.LogInformation($"Initiating search for the following query \n{request.Query}.");
+        _logger.LogInformation("Initiating search for the following query \n{query}.", request.Query);
 
         SearchResults<SearchDocument> response = await _searchClient.SearchAsync<SearchDocument>(request.Query, options);
 
-        _logger.LogInformation($"SearchAsync found {response.TotalCount} relevant documents.");
-        _logger.LogInformation($"Search results reduced to {options.VectorSearch.Queries.FirstOrDefault()?.KNearestNeighborsCount} by KNearestNeighborsCount parameter.");
+        _logger.LogInformation("SearchAsync found {count} relevant documents.", response.TotalCount);
+        _logger.LogInformation("Search results reduced to {nearestNeighbors} by KNearestNeighborsCount parameter.", options.VectorSearch.Queries.FirstOrDefault()?.KNearestNeighborsCount);
 
         var searchResults = new List<SearchResult<SearchDocument>>();
 
         await foreach (SearchResult<SearchDocument> searchResultDocument in response.GetResultsAsync())
         {
-            _logger.LogTrace($"Search results include the chunk in order {searchResultDocument.Document[IndexFields.NoteChunkOrder]} of note " +
-                $"with NodeId {searchResultDocument.Document[IndexFields.NoteId]} with a score of {searchResultDocument.Score}.");
+            _logger.LogTrace(
+                "Search results include the chunk in order {noteChunkOrder} of note with NodeId {noteId} with a score of {score}.",
+                searchResultDocument.Document[IndexFields.NoteChunkOrder],
+                searchResultDocument.Document[IndexFields.NoteId],
+                searchResultDocument.Score);
 
             searchResults.Add(searchResultDocument);
         }

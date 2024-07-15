@@ -1,5 +1,4 @@
 using Api.Models;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -31,9 +30,16 @@ public class FetchNote
 
         var blobServiceClient = new BlobServiceClient(_functionSettings.BlobStorageConnStr); //, BlobClientOptions options = default
 
+        _logger.LogDebug("Looking for notes in notes container");
+
+        // todo: move to configuration
         var containerClient = blobServiceClient.GetBlobContainerClient("notes");
 
+        _logger.LogDebug("Looking for notes in notes/{ndjsonfilename}", _functionSettings.NoteJsonFileName);
+
         var blobClient = containerClient.GetBlobClient(_functionSettings.NoteJsonFileName);
+
+        _logger.LogDebug("Downloading notes from notes/{ndjsonfilename}", _functionSettings.NoteJsonFileName);
 
         var blobDownloadResult = await blobClient.DownloadContentAsync();
 
@@ -43,9 +49,9 @@ public class FetchNote
         if (blobDownloadResult.Value.Content == null)
             throw new Exception($"Unable to retrieve valid content from {_functionSettings.NoteJsonFileName} in storage.");
 
-       //List<SourceNoteRecord> notes = [];
-
         var contentStream = blobDownloadResult.Value.Content.ToStream();
+
+        _logger.LogDebug("Deserializing notes from notes/{ndjsonfilename}", _functionSettings.NoteJsonFileName);
 
         var notes = DeserializeNdJson<SourceNoteRecord>(contentStream) ?? [];
 
@@ -63,7 +69,7 @@ public class FetchNote
         List<T> results = [];
 
         while (textReader.Peek() >= 0)
-    {
+        {
             var line = textReader.ReadLine();
 
             if (string.IsNullOrWhiteSpace(line))

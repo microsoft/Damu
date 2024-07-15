@@ -37,7 +37,7 @@ public class IndexUpserter
     }
 
     [Function(nameof(IndexUpserter))]
-    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content, string name)
+    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content)
     {
         // clean out BOM if present
         var cleanedContent = content.Trim().Replace("\uFEFF", "");
@@ -68,11 +68,11 @@ public class IndexUpserter
             inputDocuments.Add(foo);
         }
 
-        _logger.LogInformation($"Parsed out {inputDocuments.Count} note records to analyze for loading.");
+        _logger.LogInformation("Parsed out {count} note records to analyze for loading.", inputDocuments.Count);
 
         await LoadIndexAsync(inputDocuments);
 
-        _logger.LogInformation($"Index loading completed.");
+        _logger.LogInformation("Index loading completed.");
     }
 
     private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
@@ -174,13 +174,13 @@ public class IndexUpserter
 
             if (tokenCount > _functionSettings.MaxChunkSize)
             {
-                _logger.LogDebug($"Note {document.NoteId} is too large to index in one chunk. Splitting...");
+                _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", document.NoteId);
                 newSearchDocs = await RecursivelySplitNoteContent(document);
-                _logger.LogDebug($"Note {document.NoteId} chunking produced {newSearchDocs.Count} chunks.");
+                _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", document.NoteId, newSearchDocs.Count);
             }
             else
             {
-                _logger.LogDebug($"Note {document.NoteId} is small enough to index in one chunk.");
+                _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", document.NoteId);
                 document.NoteChunk = content;
                 document.NoteChunkOrder = 0;
                 newSearchDocs.Add(await ConvertToSearchDocumentAsync(document));
@@ -198,7 +198,7 @@ public class IndexUpserter
                 ThrowOnAnyError = true
             };
 
-            _logger.LogInformation($"Loading {sampleDocuments.Count} index records to index...");
+            _logger.LogInformation("Loading {count} index records to index...", sampleDocuments.Count);
 
             indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
         }
@@ -207,14 +207,14 @@ public class IndexUpserter
             _logger.LogError("Partial failures detected. Some documents failed to index.");
             foreach (var exception in aggregateException.InnerExceptions)
             {
-                _logger.LogError(exception.Message);
+                _logger.LogError("{exception}", exception.Message);
             }
 
-            _logger.LogInformation($"Encountered {aggregateException.InnerExceptions.Count} exceptions trying to load the index.");
+            _logger.LogInformation("Encountered {count} exceptions trying to load the index.", aggregateException.InnerExceptions.Count);
 
             if (indexingResult?.Value.Results.Count > 0)
             {
-                _logger.LogInformation($"Successfully indexed {indexingResult.Value.Results.Count} documents.");
+                _logger.LogInformation("Successfully indexed {count} documents.", indexingResult.Value.Results.Count);
             }
         }
     }
@@ -258,9 +258,9 @@ public class IndexUpserter
 
         if (!string.IsNullOrWhiteSpace(sourceNote.NoteChunk))
         {
-            _logger.LogDebug($"Generating embeddings for note {sourceNote.NoteId} chunk {sourceNote.NoteChunkOrder}");
+            _logger.LogDebug("Generating embeddings for note {noteId} chunk {noteChunkOrder}", sourceNote.NoteId, sourceNote.NoteChunkOrder);
 
-            dictionary["NoteChunkVector"] = await GenerateEmbeddingAsync(sourceNote.NoteChunk);
+            dictionary[IndexFields.NoteChunkVector] = await GenerateEmbeddingAsync(sourceNote.NoteChunk);
         }
 
         var document = new SearchDocument(dictionary);
@@ -269,7 +269,7 @@ public class IndexUpserter
     }
     private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
-        _logger.LogTrace($"Generating embedding for text: {text}");
+        _logger.LogTrace("Generating embedding for text: {text}", text);
 
         var response = await _openAIClient.GetEmbeddingsAsync(new EmbeddingsOptions(_functionSettings.AzureOpenAiEmbeddingDeployment, [text]));
 

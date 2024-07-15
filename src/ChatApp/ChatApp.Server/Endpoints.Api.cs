@@ -19,7 +19,7 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> PostConversation(
-        [FromServices] ChatCompletionService chat,
+        [FromServices] IChatCompletionService chat,
         [FromServices] AzureSearchService search)
     {
         // do the search here

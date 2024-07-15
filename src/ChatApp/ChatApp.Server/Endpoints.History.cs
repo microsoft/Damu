@@ -4,12 +4,15 @@ using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
+using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text.Json;
 
 namespace ChatApp.Server;
 
 public static partial class Endpoints
 {
+    // can we simplify this to just use SK models? https://github.com/microsoft/semantic-kernel/discussions/5815
+
     public static WebApplication MapHistoryEndpoints(this WebApplication app)
     {
         app.MapGet("/history/ensure", GetEnsureHistoryAsync);
@@ -133,6 +136,8 @@ public static partial class Endpoints
             ? new OkObjectResult(updatedMessage)
             : new NotFoundResult();
     }
+
+
 
     #region NotImplemented
     private static async Task ReadHistory(HttpContext context)
@@ -273,60 +278,34 @@ public static partial class Endpoints
     {
         var user = GetUser(context);
 
+        if (user == null)
+            return new UnauthorizedResult();
 
-        // check request for conversation_id
-
-        // mj: what should request body look like?
         var conversation = await context.GetFromRequestJsonAsync<Conversation>();
 
         // todo: better handling of bad reqs
         if (conversation == null)
             return new BadRequestResult();
 
-        var history_metadata = new Dictionary<string, object>();
-
         if (string.IsNullOrWhiteSpace(conversation.Id))
         {
-            var title = await GenerateTitleAsync(conversation.Messages);
+            var title = await chatCompletionService.GenerateTitleAsync(conversation.Messages);
+
             var newConversation = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
-            history_metadata["title"] = conversation.Title;
-            history_metadata["date"] = conversation.CreatedAt;
         }
 
         // Format the incoming message object in the "chat/completions" messages format
         // then write it to the conversation history in cosmos
+        if (conversation.Messages.Count == 0 || conversation.Messages[-1].Role != AuthorRole.User) // move role format to enum?
+            return new BadRequestObjectResult("No user messages found");
 
-        //if (conversation.Messages.Count > 0 && conversation.Messages[0].Role == "User") // move role format to enum?
-        //{
-        // todo: sort out the 
+        //var result = await chatCompletionService.AlternativeCompleteChat(conversation)
+
+
+
         //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
 
-
-        //}
-
         // todo: build out history and send to conversations endpoint
-
-
-
-
-        //        if len(messages) > 0 and messages[-1]["role"] == "user":
-        //            createdMessageValue = await cosmos_conversation_client.create_message(
-        //                uuid = str(uuid.uuid4()),
-        //                conversation_id = conversation_id,
-        //                user_id = user_id,
-        //                input_message = messages[-1],
-        //            )
-        //            if createdMessageValue == "Conversation not found":
-        //                raise Exception(
-        //                    "Conversation not found for the given conversation ID: "
-        //                    + conversation_id
-        //                    + "."
-        //                )
-        //        else:
-        //            raise Exception("No user message found")
-
-        //        await cosmos_conversation_client.cosmosdb_client.close()
-
 
 
         //        # Submit request to Chat Completions for response
@@ -345,12 +324,6 @@ public static partial class Endpoints
     #endregion
 
     #region Helpers
-
-    private static async Task<string> GenerateTitleAsync(object messages)
-    {
-        await Task.Delay(0);
-        throw new NotImplementedException();
-    }
 
     private static EasyAuthUser? GetUser(HttpContext context)
     {

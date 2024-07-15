@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace ChatApp.Server;
 
@@ -436,12 +437,15 @@ public static partial class Endpoints
 
     private static async Task GenerateHistory(HttpContext context)
     {
-        //    authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //    user_id = authenticated_user["user_principal_id"]
+        var authenticated_user = GetUser(context);
+        var user_id = authenticated_user.UserPrincipalId;
 
-        //    ## check request for conversation_id
-        //    request_json = await request.get_json()
-        //    conversation_id = request_json.get("conversation_id", None)
+        // check request for conversation_id
+        using var streamReader = new StreamReader(context.Request.Body);
+        var str = await streamReader.ReadToEndAsync();
+        // mj: what should request body look like?
+        var request_json = JsonSerializer.Deserialize<Dictionary<string, object>>(str);
+        var conversation_id = request_json["conversation_id"];
 
         //    try:
         //        # make sure cosmos is configured

@@ -4,7 +4,6 @@ using ChatApp.Server.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.VisualBasic;
 
 namespace ChatApp.Server.Services;
 
@@ -45,7 +44,7 @@ public class ChatCompletionService : IChatService
         var msg = new Message
         {
             Id = "0000",
-            Role = AuthorRole.User,
+            Role = AuthorRole.User.ToString(),
             Content = prompt,
             Date = DateTime.UtcNow
         };
@@ -57,6 +56,7 @@ public class ChatCompletionService : IChatService
     {
         var sysmessage = @"You are a helpful assistant.";
         var history = new ChatHistory(sysmessage);
+
         foreach (var message in messages)
         {
             history.AddUserMessage(message.Content);
@@ -74,12 +74,13 @@ public class ChatCompletionService : IChatService
                 Messages = response.Items.Select(item => new Message
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant,
+                    Role = AuthorRole.Assistant.ToString(),
                     Content = item.ToString()!,
                     Date = DateTime.UtcNow
                 }).ToList()
             }]
         };
+
         return result;
     }
 
@@ -101,7 +102,7 @@ public class ChatCompletionService : IChatService
                 Messages = response.Items.Select(item => new Message
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant,
+                    Role = AuthorRole.Assistant.ToString(),
                     Content = item.ToString()!,
                     Date = DateTime.UtcNow
                 }).ToList()

@@ -1,15 +1,12 @@
 ﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Newtonsoft.Json.Converters;
-using System.Text.Json.Serialization;
 
 namespace ChatApp.Server.Models;
 
 public class Message
 {
     public string Id { get; set; } = string.Empty;
-    [JsonConverter(typeof(StringEnumConverter))]
-    public AuthorRole Role { get; set; }
+    public string Role { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DateTime Date { get; set; }
 
@@ -19,7 +16,7 @@ public class Message
         // or author? https://learn.microsoft.com/en-us/dotnet/api/microsoft.semantickernel.chatmessagecontent?view=semantic-kernel-dotnet
         return new ChatMessageContent
         {
-            Role = Role,
+            Role = Enum.Parse<AuthorRole>(Role),
             Content = Content,
         };
     }
@@ -31,5 +28,5 @@ public class HistoryMessage : Message
     public string ConversationId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public string Feedback { get; set; } = string.Empty;    
+    public string Feedback { get; set; } = string.Empty;
 }

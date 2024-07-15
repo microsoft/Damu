@@ -296,7 +296,7 @@ public static partial class Endpoints
 
         // Format the incoming message object in the "chat/completions" messages format
         // then write it to the conversation history in cosmos
-        if (conversation.Messages.Count == 0 || conversation.Messages[-1].Role != AuthorRole.User) // move role format to enum?
+        if (conversation.Messages.Count == 0 || conversation.Messages[^1].Role != AuthorRole.User.ToString()) // move role format to enum?
             return new BadRequestObjectResult("No user messages found");
 
         //var result = await chatCompletionService.AlternativeCompleteChat(conversation)

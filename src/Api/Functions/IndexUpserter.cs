@@ -23,6 +23,8 @@ public class IndexUpserter
     private readonly SearchIndexClient _searchIndexClient;
     private readonly DocumentIntelligenceClient _docIntelClient;
 
+    // todo: move to orchestration function pattern to handle larger throughput
+    // todo: add in upsert for individual notes
     public IndexUpserter(DocumentIntelligenceClient docIntelClient, FunctionSettings functionSettings, ILogger<IndexUpserter> logger, OpenAIClient openAiClient, SearchClient searchClient, SearchIndexClient searchIndexClient)
     {
         _docIntelClient = docIntelClient;
@@ -105,6 +107,9 @@ public class IndexUpserter
                 Profiles =
                 {
                     new VectorSearchProfile(_functionSettings.VectorSearchProfileName, _functionSettings.VectorSearchHnswConfigName)
+                    {
+                        Vectorizer = _functionSettings.VectorSearchVectorizer
+                    }
                 },
                 Algorithms =
                 {
@@ -128,7 +133,7 @@ public class IndexUpserter
                         {
                             ContentFields =
                             {
-                                new SemanticField("NoteChunk")
+                                new SemanticField(IndexFields.NoteChunk)
                             }
                         })
                 }
@@ -136,13 +141,13 @@ public class IndexUpserter
             Fields =
             {
                 // required for index structure
-                new SearchableField("IndexRecordId") { IsKey = true },
-                new SearchField("NoteId", SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
+                new SearchableField(IndexFields.IndexRecordId) { IsKey = true },
+                new SearchField(IndexFields.NoteId, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
 
                 // index main content
-                new SearchableField("NoteChunk") { IsFilterable = true, IsSortable = true },
-                new SearchField("NoteChunkOrder", SearchFieldDataType.Int32) { IsFilterable = true, IsSortable = true },
-                new SearchField("NoteChunkVector", SearchFieldDataType.Collection(SearchFieldDataType.Single))
+                new SearchableField(IndexFields.NoteChunk) { IsFilterable = true, IsSortable = true },
+                new SearchField(IndexFields.NoteChunkOrder, SearchFieldDataType.Int32) { IsFilterable = true, IsSortable = true },
+                new SearchField(IndexFields.NoteChunkVector, SearchFieldDataType.Collection(SearchFieldDataType.Single))
                 {
                     IsSearchable = true,
                     VectorSearchDimensions = _functionSettings.ModelDimensions,
@@ -150,18 +155,18 @@ public class IndexUpserter
                 },
 
                 // good to have fields for contstructing with fhir query results
-                new SearchField("CSN", SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true },
-                new SearchField("MRN", SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
+                new SearchField(IndexFields.CSN, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true },
+                new SearchField(IndexFields.MRN, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
                 
                 // nice to have fields for filtering and faceting
-                new SearchableField("NoteType") { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField("NoteStatus") { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField("AuthorId") { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField("AuthorFirstName") { IsFilterable = true, IsSortable = true },
-                new SearchableField("AuthorLastName") { IsFilterable = true, IsSortable = true },
-                new SearchableField("Department") { IsFilterable = true, IsSortable = true, IsFacetable = true  },
-                new SearchableField("Gender") { IsFilterable = true, IsSortable = true, IsFacetable = true  },
-                new SearchField("BirthDate", SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true }
+                new SearchableField(IndexFields.NoteType) { IsFilterable = true, IsSortable = true, IsFacetable = true },
+                new SearchableField(IndexFields.NoteStatus) { IsFilterable = true, IsSortable = true, IsFacetable = true },
+                new SearchableField(IndexFields.AuthorId) { IsFilterable = true, IsSortable = true, IsFacetable = true },
+                new SearchableField(IndexFields.AuthorFirstName) { IsFilterable = true, IsSortable = true },
+                new SearchableField(IndexFields.AuthorLastName) { IsFilterable = true, IsSortable = true },
+                new SearchableField(IndexFields.Department) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
+                new SearchableField(IndexFields.Gender) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
+                new SearchField(IndexFields.BirthDate, SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true }
             }
         };
 

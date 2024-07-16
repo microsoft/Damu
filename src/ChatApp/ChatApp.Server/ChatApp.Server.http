@@ -1,15 +1,14 @@
-@ChatApp.Server_HostAddress = http://localhost:5278
+@Server_HostAddress = http://localhost:5278
 
-POST {{ChatApp.Server_HostAddress}}/conversation/
-Accept: application/json
+POST http://localhost:5278/conversation
+Content-Type: application/json
 {
   "messages": [
     {
-      "id": "11111111111111",
+      "id": "12345",
       "role": "user",
-      "content": "what is the meaning of life",
-      "date": "2024-07-15T19:13:12.943Z"
+      "content": "What can you tell me about Influenza?",
+      "date": "2024-07-15T23:19:18.686Z"
     }
   ]
 }
-###

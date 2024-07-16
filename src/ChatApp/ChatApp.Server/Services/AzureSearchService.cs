@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using Azure.Core;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using ChatApp.Server.Models;
@@ -8,7 +9,7 @@ namespace ChatApp.Server.Services;
 
 public class AzureSearchService(SearchClient searchClient)
 {
-    [KernelFunction("QueryDocumentsAsync")]
+    [KernelFunction("query_documents_async")]
     [Description("Query relevant content from Azure Search")]
     [return: Description("Relevant content text data")]
     public async Task<SupportingContentRecord[]> QueryDocumentsAsync(
@@ -21,54 +22,36 @@ public class AzureSearchService(SearchClient searchClient)
             throw new ArgumentException("Either query or embedding must be provided");
         }
 
-        var documentContents = string.Empty;
-        var top = 3;
-        var useSemanticRanker = false;
-        var useSemanticCaptions = false;
+        string semanticConfigurationName = "damu-semantic-config";
+        bool useSemanticCaptions = false;
 
-        SearchOptions searchOptions = useSemanticRanker
-            ? new SearchOptions
+        var options = new SearchOptions
+        {
+            Filter = "",
+            Size = 5,
+            Select = {
+               "*"
+            }, 
+            IncludeTotalCount = true,
+            QueryType = SearchQueryType.Full,
+            SemanticSearch = new SemanticSearchOptions
             {
-                QueryType = SearchQueryType.Semantic,
-                SemanticSearch = new()
+                SemanticConfigurationName = semanticConfigurationName
+            },
+            VectorSearch = new()
+            {
+                Queries = {
+                new VectorizableTextQuery(text: query)
                 {
-                    SemanticConfigurationName = "default",
-                    QueryCaption = new(useSemanticCaptions
-                        ? QueryCaptionType.Extractive
-                        : QueryCaptionType.None),
+                        KNearestNeighborsCount = 5,
+                        Fields = { "NoteChunkVector"},
+                        Exhaustive = true
+                    }
                 },
-                // TODO: Find if these options are assignable
-                //QueryLanguage = "en-us",
-                //QuerySpeller = "lexicon",
-                Size = top,
             }
-            : new SearchOptions
-            {
-                Size = top,
-            };
+        };
 
-        if (embedding != null)
-        {
-            var k = useSemanticRanker ? 50 : top;
-            var vectorQuery = new VectorizedQuery(embedding)
-            {
-                // if semantic ranker is enabled, we need to set the rank to a large number to get more
-                // candidates for semantic reranking
-                KNearestNeighborsCount = useSemanticRanker ? 50 : top,
-            };
-            vectorQuery.Fields.Add("embedding");
-            searchOptions.VectorSearch = new();
-            searchOptions.VectorSearch.Queries.Add(vectorQuery);
-        }
-
-        var searchResultResponse = await searchClient.SearchAsync<SearchDocument>(
-            query, searchOptions, cancellationToken);
-        if (searchResultResponse.Value is null)
-        {
-            throw new InvalidOperationException("fail to get search result");
-        }
-
-        SearchResults<SearchDocument> searchResult = searchResultResponse.Value;
+        SearchResults<SearchDocument> searchResult = await searchClient.SearchAsync<SearchDocument>(query, options, cancellationToken=default);
 
         // Assemble sources here.
         // Example output for each SearchDocument:

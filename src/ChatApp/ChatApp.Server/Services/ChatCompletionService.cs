@@ -4,7 +4,6 @@ using ChatApp.Server.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Plugins.Core;
 
 namespace ChatApp.Server.Services;
 
@@ -13,7 +12,7 @@ public class ChatCompletionService
     private readonly Kernel _kernel;
     private readonly PromptExecutionSettings _promptSettings;
 
-    public ChatCompletionService(IConfiguration config)
+    public ChatCompletionService(IConfiguration config, AzureSearchService searchService)
     {
         var defaultAzureCreds = new DefaultAzureCredential();
 
@@ -36,7 +35,7 @@ public class ChatCompletionService
             builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
             builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
         }
-        builder.Plugins.AddFromType<AzureSearchService>();
+        builder.Plugins.AddFromObject(searchService, "SearchNotes");
         _kernel = builder.Build();
     }
 
@@ -55,7 +54,15 @@ public class ChatCompletionService
 
     public async Task<ChatCompletion> CompleteChat(Message[] messages)
     {
-        var sysmessage = @"You are a helpful assistant.";
+        var sysmessage = @"You are an agent helping a medical administrator user summarize medical notes.
+                The resulting summary consists only of a list of patient's names and the corresponding MRNs in a table format.
+                There should be no additional language on the response, only the MRN and the name of the patient that corresponds with the notes that match the user's query.
+                If you cannot find information relevant to the question, reply with an empty table. Do not use general knowledge to respond.
+                Sample Answer:
+                Patient Name	|	MRN	
+                John Johnson 	|	1234567
+                Peter Peterson	| 	7654321
+                {{query}}";
         var history = new ChatHistory(sysmessage);
 
         foreach (var message in messages)

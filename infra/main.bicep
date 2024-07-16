@@ -50,7 +50,7 @@ param embeddingModelName string = 'text-embedding-ada-002'
 param storageAccountName string = ''
 
 @description('Name of the storage container. Default: content')
-param storageContainerName string = 'content'
+param storageContainerName string = 'notes'
 
 @description('Location of the resource group for the storage account')
 param storageResourceGroupLocation string = location
@@ -236,25 +236,22 @@ module function './app/function.bicep' = {
     allowedOrigins: [ backend.outputs.uri ]
     useManagedIdentity: true
     appSettings: {
-      AzureOpenAiEmbeddingDeployedModel: ''
-      AzureOpenAiEndpoint: ''
+      AzureOpenAiEmbeddingDeployment: embeddingDeploymentName
+      AzureOpenAiEmbeddingModel: embeddingModelName
+      AzureOpenAiEndpoint: openAi.outputs.endpoint
       AzureWebJobsStorage: ''
-      DocIntelEndPoint: ''
+      DocIntelEndPoint: formRecognizer.outputs.endpoint
+      FHIRAuthClientId: ''
+      FHIRAuthClientSecret: ''
+      FHIRAuthResource: ''
+      FHIRAuthTenantId: ''
+      FHIRServerUrl: ''
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
       IncomingBlobConnStr: ''
-      ModelDimensions: ''
-      SearchEndpoint: ''
+      ModelDimensions: '3072'
+      NoteJsonFileName: 'modified_Notes.ndjson' // this will be removed after refactoring of the indexing functions for single file format expectation
       ProjectPrefix: 'damu'
-      NoteJsonFileName: '' // expects ndjson format,
-      FHIR_SERVER_URL: ''
-      TenantId: ''
-      ClientId: ''
-      ClientSecret: ''
-      Resource: ''
-      // the following are optional - complete them if you want to use key base auth, leave blank for managed identity
-      SearchKey: ''
-      AzureOpenAiKey: ''
-      DocIntelKey: ''
+      SearchEndpoint: searchService.outputs.endpoint
     }
   }
 }

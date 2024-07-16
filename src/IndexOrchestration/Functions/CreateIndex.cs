@@ -24,13 +24,6 @@ public class CreateIndex
     [Function("CreateIndex")]
     public async Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
     {
-        if (!string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");
-
-            await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
-        }
-
         _logger.LogInformation("Creating/updating index...");
 
         var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters

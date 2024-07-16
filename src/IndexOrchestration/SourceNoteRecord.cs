@@ -46,7 +46,7 @@ internal class SourceNoteRecord
 
         foreach (var key in this.GetType().GetProperties())
         {
-            if (key.Name == "NoteContent" || key.Name == "NoteInHtml" || key.Name == "NoteInText")
+            if (key.Name == "NoteContent" || key.Name == "NoteContent" || key.Name == "NoteInText")
                 continue;
 
             result.Add(key.Name, key.GetValue(this));

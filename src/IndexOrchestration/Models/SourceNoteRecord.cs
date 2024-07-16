@@ -20,11 +20,11 @@ internal class SourceNoteRecord
         Department = original.Department;
     }
     public Guid? IndexRecordId { get; set; } = Guid.NewGuid();
-    public long? NoteId { get; set; }
+    public int? NoteId { get; set; }
     public string? NoteContent { get; set; } = string.Empty;
     public string? NoteChunk { get; set; } = string.Empty;
     public int? NoteChunkOrder { get; set; }
-    public List<float> NoteChunkVector { get; set; } = []; // ?
+    public List<float> NoteChunkVector { get; set; } = [];
     public long? CSN { get; set; }
     public long? MRN { get; set; }
     public string? NoteType { get; set; } = string.Empty;

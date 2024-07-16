@@ -1,12 +1,11 @@
 #pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-using IndexOrchestration.Models;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
-using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
+using IndexOrchestration.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
@@ -21,172 +20,57 @@ public class IndexUpserter
     private readonly ILogger<IndexUpserter> _logger;
     private readonly OpenAIClient _openAIClient;
     private readonly SearchClient _searchClient;
-    private readonly SearchIndexClient _searchIndexClient;
     private readonly DocumentIntelligenceClient _docIntelClient;
 
     // todo: move to orchestration function pattern to handle larger throughput
     // todo: add in upsert for individual notes
-    public IndexUpserter(DocumentIntelligenceClient docIntelClient, FunctionSettings functionSettings, ILogger<IndexUpserter> logger, OpenAIClient openAiClient, SearchClient searchClient, SearchIndexClient searchIndexClient)
+    public IndexUpserter(DocumentIntelligenceClient docIntelClient, FunctionSettings functionSettings, ILogger<IndexUpserter> logger, OpenAIClient openAiClient, SearchClient searchClient)
     {
         _docIntelClient = docIntelClient;
         _functionSettings = functionSettings;
         _logger = logger;
         _openAIClient = openAiClient;
         _searchClient = searchClient;
-        _searchIndexClient = searchIndexClient;
     }
 
     [Function(nameof(IndexUpserter))]
-    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content)
+    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string json)
     {
-        // clean out BOM if present
-        var cleanedContent = content.Trim().Replace("\uFEFF", "");
+        SourceNoteRecord? sourceNoteRecord = null;
 
-        if (!string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");
+            sourceNoteRecord = JsonConvert.DeserializeObject<SourceNoteRecord>(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize note record.");
 
-            await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
+            return;
         }
 
-        _logger.LogInformation("Creating/updating index...");
+        if (sourceNoteRecord == null)
+            return;
 
-        await CreateOrUpdateIndexAsync();
+        _logger.LogInformation("Received serializable note record to load with NoteId of {noteId}.", sourceNoteRecord.NoteId);
 
-        var jsonReader = new JsonTextReader(new StringReader(cleanedContent))
+        List<SearchDocument> newSearchDocs = [];
+
+        var content = !string.IsNullOrWhiteSpace(sourceNoteRecord.NoteContent) ? sourceNoteRecord.NoteContent : string.Empty;
+        var tokenCount = GetTokenCount(content);
+
+        if (tokenCount > _functionSettings.MaxChunkSize)
         {
-            SupportMultipleContent = true
-        };
-
-        var jsonSerializer = new JsonSerializer();
-
-        List<SourceNoteRecord> inputDocuments = [];
-
-        while (jsonReader.Read())
-        {
-            SourceNoteRecord foo = jsonSerializer.Deserialize<SourceNoteRecord>(jsonReader) ?? new();
-            inputDocuments.Add(foo);
+            _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", sourceNoteRecord.NoteId);
+            newSearchDocs = await RecursivelySplitNoteContent(sourceNoteRecord);
+            _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", sourceNoteRecord.NoteId, newSearchDocs.Count);
         }
-
-        _logger.LogInformation("Parsed out {count} note records to analyze for loading.", inputDocuments.Count);
-
-        await LoadIndexAsync(inputDocuments);
-
-        _logger.LogInformation("Index loading completed.");
-    }
-
-    private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
-    {
-        var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
+        else
         {
-            ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
-        } : new AzureOpenAIParameters
-        {
-            ResourceUri = _functionSettings.AzureOpenAiEndpoint,
-            DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
-        };
-
-        SearchIndex index = new(_functionSettings.SearchIndexName)
-        {
-            VectorSearch = new()
-            {
-                Profiles =
-                {
-                    new VectorSearchProfile(_functionSettings.VectorSearchProfileName, _functionSettings.VectorSearchHnswConfigName)
-                    {
-                        Vectorizer = _functionSettings.VectorSearchVectorizer
-                    }
-                },
-                Algorithms =
-                {
-                    new HnswAlgorithmConfiguration(_functionSettings.VectorSearchHnswConfigName)
-                },
-                Vectorizers =
-                    {
-                        new AzureOpenAIVectorizer(_functionSettings.VectorSearchVectorizer)
-                        {
-                            AzureOpenAIParameters = aoaiParams
-                        }
-                    }
-            },
-            SemanticSearch = new SemanticSearch()
-            {
-                Configurations =
-                {
-                    new SemanticConfiguration(
-                        _functionSettings.SemanticSearchConfigName,
-                        new SemanticPrioritizedFields()
-                        {
-                            ContentFields =
-                            {
-                                new SemanticField(IndexFields.NoteChunk)
-                            }
-                        })
-                }
-            },
-            Fields =
-            {
-                // required for index structure
-                new SearchableField(IndexFields.IndexRecordId) { IsKey = true },
-                new SearchField(IndexFields.NoteId, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
-
-                // index main content
-                new SearchableField(IndexFields.NoteChunk) { IsFilterable = true, IsSortable = true },
-                new SearchField(IndexFields.NoteChunkOrder, SearchFieldDataType.Int32) { IsFilterable = true, IsSortable = true },
-                new SearchField(IndexFields.NoteChunkVector, SearchFieldDataType.Collection(SearchFieldDataType.Single))
-                {
-                    IsSearchable = true,
-                    VectorSearchDimensions = _functionSettings.ModelDimensions,
-                    VectorSearchProfileName = _functionSettings.VectorSearchProfileName
-                },
-
-                // good to have fields for contstructing with fhir query results
-                new SearchField(IndexFields.CSN, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true },
-                new SearchField(IndexFields.MRN, SearchFieldDataType.Int64) { IsFilterable = true, IsSortable = true }, 
-                
-                // nice to have fields for filtering and faceting
-                new SearchableField(IndexFields.NoteType) { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField(IndexFields.NoteStatus) { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField(IndexFields.AuthorId) { IsFilterable = true, IsSortable = true, IsFacetable = true },
-                new SearchableField(IndexFields.AuthorFirstName) { IsFilterable = true, IsSortable = true },
-                new SearchableField(IndexFields.AuthorLastName) { IsFilterable = true, IsSortable = true },
-                new SearchableField(IndexFields.Department) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
-                new SearchableField(IndexFields.Gender) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
-                new SearchField(IndexFields.BirthDate, SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true }
-            }
-        };
-
-        return await _searchIndexClient.CreateOrUpdateIndexAsync(index);
-    }
-
-    private async Task LoadIndexAsync(List<SourceNoteRecord> inputDocuments)
-    {
-        List<SearchDocument> sampleDocuments = [];
-
-        foreach (var document in inputDocuments)
-        {
-            List<SearchDocument> newSearchDocs = [];
-
-            var content = !string.IsNullOrWhiteSpace(document.NoteInHtml) ? document.NoteInHtml : string.Empty;
-
-            var tokenCount = GetTokenCount(content);
-
-            if (tokenCount > _functionSettings.MaxChunkSize)
-            {
-                _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", document.NoteId);
-                newSearchDocs = await RecursivelySplitNoteContent(document);
-                _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", document.NoteId, newSearchDocs.Count);
-            }
-            else
-            {
-                _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", document.NoteId);
-                document.NoteChunk = content;
-                document.NoteChunkOrder = 0;
-                newSearchDocs.Add(await ConvertToSearchDocumentAsync(document));
-            }
-
-            sampleDocuments.AddRange(newSearchDocs);
+            _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", sourceNoteRecord.NoteId);
+            sourceNoteRecord.NoteChunk = content;
+            sourceNoteRecord.NoteChunkOrder = 0;
+            newSearchDocs.Add(await ConvertToSearchDocumentAsync(sourceNoteRecord));
         }
 
         Response<IndexDocumentsResult>? indexingResult = null;
@@ -198,9 +82,9 @@ public class IndexUpserter
                 ThrowOnAnyError = true
             };
 
-            _logger.LogInformation("Loading {count} index records to index...", sampleDocuments.Count);
+            _logger.LogInformation("Loading {count} index records to index...", newSearchDocs.Count);
 
-            indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
+            indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(newSearchDocs), opts);
         }
         catch (AggregateException aggregateException)
         {
@@ -217,16 +101,18 @@ public class IndexUpserter
                 _logger.LogInformation("Successfully indexed {count} documents.", indexingResult.Value.Results.Count);
             }
         }
+
+        _logger.LogInformation("Index loading completed.");
     }
 
     private async Task<List<SearchDocument>> RecursivelySplitNoteContent(SourceNoteRecord sourceNote)
     {
-        if (string.IsNullOrWhiteSpace(sourceNote.NoteInHtml))
+        if (string.IsNullOrWhiteSpace(sourceNote.NoteContent))
             return [];
 
         var analyzeRequest = new AnalyzeDocumentContent
         {
-            Base64Source = BinaryData.FromString(sourceNote.NoteInHtml)
+            Base64Source = BinaryData.FromString(sourceNote.NoteContent)
         };
 
         var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Markdown);
@@ -267,6 +153,7 @@ public class IndexUpserter
 
         return document;
     }
+
     private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
         _logger.LogTrace("Generating embedding for text: {text}", text);

@@ -7,7 +7,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace ChatApp.Server.Services;
 
-public class ChatCompletionService : IChatService
+public class ChatCompletionService
 {
     private readonly Kernel _kernel;
     private readonly PromptExecutionSettings _promptSettings;

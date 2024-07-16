@@ -27,12 +27,12 @@ public static partial class Endpoints
         app.MapPost("/history/read", ReadHistory);
 
         return app;
-    }
+    }    
 
-    private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService history)
     {
-        // todo: refactor the UI so that this is can be refactored to make any amount of sense...
-        var (cosmosIsConfigured, _) = await conversationService.EnsureAsync();
+        // todo: refactor the UI so that this can be refactored to make any amount of sense...
+        var (cosmosIsConfigured, _) = await history.EnsureAsync();
 
         return cosmosIsConfigured
             ? Results.Ok(JsonSerializer.Deserialize<object>(@"{ ""converation"": ""CosmosDB is configured and working""}"))
@@ -144,7 +144,7 @@ public static partial class Endpoints
 
     private static async Task<IResult> ListHistory(
         HttpContext context,
-        [FromServices] IChatService chat,
+        [FromServices] ChatCompletionService chat,
         [FromServices] CosmosConversationService history,
         int offset)
     {

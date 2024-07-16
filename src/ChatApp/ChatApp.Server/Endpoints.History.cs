@@ -2,6 +2,7 @@
 using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text.Json;
 
@@ -14,17 +15,17 @@ public static partial class Endpoints
     public static WebApplication MapHistoryEndpoints(this WebApplication app)
     {
         app.MapGet("/history/ensure", GetEnsureHistoryAsync);
+        app.MapPost("/history/clear", ClearHistoryAsync);
+        app.MapDelete("/history/delete_all", DeleteAllHistoryAsync);
+        app.MapPost("/history/rename", RenameHistoryAsync);
+        app.MapDelete("/history/delete", DeleteHistory);
+        app.MapPost("/history/message_feedback", MessageFeedbackAsync);
 
         // Not implemented
         app.MapPost("/history/generate", GenerateHistory);
         app.MapPost("/history/update", UpdateHistory);
-        app.MapPost("/history/message_feedback", MessageFeedbackAsync);
-        app.MapDelete("/history/delete", DeleteHistory);
         app.MapGet("/history/list", ListHistory);
         app.MapPost("/history/read", ReadHistory);
-        app.MapPost("/history/rename", RenameHistoryAsync);
-        app.MapDelete("/history/delete_all", DeleteAllHistoryAsync);
-        app.MapPost("/history/clear", ClearHistoryAsync);
 
         return app;
     }
@@ -39,16 +40,20 @@ public static partial class Endpoints
             : Results.NotFound(JsonSerializer.Deserialize<object>(@"{ ""error"": ""CosmosDB is not configured""}"));
     }
 
-    private static async Task<IActionResult> ClearHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
+    private static async Task<IResult> ClearHistoryAsync(
+        HttpContext context,
+        Conversation conversation, 
+        [FromServices] CosmosConversationService conversationService)
     {
         // get the user id from the request headers
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
+
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
-            return new BadRequestObjectResult("conversation_id is required");
+            return Results.BadRequest("conversation_id is required");
 
         // todo: do conversations and messages need to be deleted separately
         // or can the conversation delete in the service encompass the messages
@@ -56,53 +61,59 @@ public static partial class Endpoints
         var deleted = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
 
         return deleted
-            ? new OkObjectResult(new { message = "Successfully deleted messages in conversation", conversation_id = conversation.Id })
-            : new NotFoundResult();
+            ? Results.Ok(new { message = "Successfully deleted messages in conversation", conversation_id = conversation.Id })
+            : Results.NotFound();
     }
 
-    private static async Task<IActionResult> DeleteAllHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
+    private static async Task<IResult> DeleteAllHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService)
     {
         // get the user id from the request headers
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
 
         await conversationService.DeleteConversationsAsync(user.UserPrincipalId);
 
-        return new OkObjectResult(new
+        return Results.Ok(new
         {
             message = $"Successfully deleted conversation and messages for user {user.UserPrincipalId}"
         });
     }
 
-    private static async Task<IActionResult> RenameHistoryAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
+    private static async Task<IResult> RenameHistoryAsync(
+        HttpContext context, 
+        Conversation conversation,
+        [FromServices] CosmosConversationService conversationService)
     {
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
-            return new BadRequestObjectResult("conversation_id is required");
+            return Results.BadRequest("conversation_id is required");
 
         var updatedConversation = await conversationService.UpdateConversationAsync(user.UserPrincipalId, conversation);
 
         if (updatedConversation == null)
-            return new NotFoundObjectResult(new { error = $"Conversation {conversation.Id} was not found" });
+            return Results.NotFound(new { error = $"Conversation {conversation.Id} was not found" });
 
-        return new OkObjectResult(updatedConversation);
+        return Results.Ok(updatedConversation);
     }
 
-    private static async Task<IActionResult> DeleteHistory(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] Conversation conversation)
+    private static async Task<IResult> DeleteHistory(
+        HttpContext context, 
+        Conversation conversation,
+        [FromServices] CosmosConversationService conversationService)
     {
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
 
         if (string.IsNullOrWhiteSpace(conversation?.Id))
-            return new BadRequestObjectResult("conversation_id is required");
+            return Results.BadRequest("conversation_id is required");
 
         var deletedConvo = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
 
@@ -112,22 +123,46 @@ public static partial class Endpoints
             conversation_id = conversation.Id
         };
 
-        return new OkObjectResult(response);
+        return Results.Ok(response);
     }
 
-    private static async Task<IActionResult> MessageFeedbackAsync(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromBody] HistoryMessage message)
+    private static async Task<IResult> MessageFeedbackAsync(
+        HttpContext context, 
+        HistoryMessage message,
+        [FromServices] CosmosConversationService conversationService)
     {
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
 
         var updatedMessage = await conversationService.UpdateMessageFeedbackAsync(user.UserPrincipalId, message.Id, message.Feedback);
 
         return updatedMessage != null
-            ? new OkObjectResult(updatedMessage)
-            : new NotFoundResult();
+            ? Results.Ok(updatedMessage)
+            : Results.NotFound();
     }
+
+    private static async Task<IResult> ListHistory(
+        HttpContext context,
+        [FromServices] IChatService chat,
+        [FromServices] CosmosConversationService history,
+        int offset)
+    {
+        var user = GetUser(context);
+
+        if (user == null)
+            return Results.Unauthorized();
+
+        var convosAsync = history.GetConversationsAsync(user.UserPrincipalId, 25, offset: offset);
+        var conversations = await convosAsync.ToListAsync();
+
+        if (conversations == null || !conversations.Any())
+            return Results.NotFound(new { error = $"No conversations for {user.UserPrincipalId} were found" });
+
+        return Results.Ok(conversations);
+    }
+
 
     #region NotImplemented
     private static async Task ReadHistory(HttpContext context)
@@ -184,32 +219,7 @@ public static partial class Endpoints
         await Task.Delay(0);
         throw new NotImplementedException();
     }
-
-    private static async Task ListHistory(HttpContext context)
-    {
-        //offset = request.args.get("offset", 0)
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
-
-        //## make sure cosmos is configured
-        //cosmos_conversation_client = init_cosmosdb_client()
-        //if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
-
-        //## get the conversations from cosmos
-        //conversations = await cosmos_conversation_client.get_conversations(
-        //    user_id, offset = offset, limit = 25
-        //)
-        //await cosmos_conversation_client.cosmosdb_client.close()
-        //if not isinstance(conversations, list):
-        //    return jsonify({ "error": f"No conversations for {user_id} were found"}), 404
-
-        //## return the conversation ids
-
-        //return jsonify(conversations), 200
-        await Task.Delay(0);
-        throw new NotImplementedException();
-    }
+        
 
     private static async Task UpdateHistory(HttpContext context)
     {
@@ -264,15 +274,19 @@ public static partial class Endpoints
         throw new NotImplementedException();
     }
 
-    private static async Task<IActionResult> GenerateHistory(HttpContext context, [FromServices] CosmosConversationService conversationService, [FromServices] ChatCompletionService chatCompletionService, [FromBody] Conversation conversation)
+    private static async Task<IResult> GenerateHistory(
+        HttpContext context, 
+        Conversation conversation,
+        [FromServices] CosmosConversationService conversationService, 
+        [FromServices] ChatCompletionService chatCompletionService)
     {
         var user = GetUser(context);
 
         if (user == null)
-            return new UnauthorizedResult();
+            return Results.Unauthorized();
 
         if (conversation == null)
-            return new BadRequestResult();
+            return Results.BadRequest();
 
         if (string.IsNullOrWhiteSpace(conversation.Id))
         {
@@ -284,8 +298,8 @@ public static partial class Endpoints
 
         // Format the incoming message object in the "chat/completions" messages format
         // then write it to the conversation history in cosmos
-        if (conversation.Messages.Count == 0 || conversation.Messages[^1].Role != AuthorRole.User.ToString()) // move role format to enum?
-            return new BadRequestObjectResult("No user messages found");
+        if (conversation.Messages.Count == 0 || !conversation.Messages[^1].Role.Equals(AuthorRole.User.ToString(), StringComparison.InvariantCultureIgnoreCase)) // move role format to enum?
+            return Results.BadRequest("No user messages found");
 
         //var result = await chatCompletionService.AlternativeCompleteChat(conversation)
 

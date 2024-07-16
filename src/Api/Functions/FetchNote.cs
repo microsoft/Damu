@@ -62,7 +62,10 @@ public class FetchNote
         };
     }
 
+    // performance improvement gained from a List is based around random access but here we are just reading the file line by line
+    #pragma warning disable CA1859 // Use concrete types when possible for improved performance
     private static IEnumerable<T> DeserializeNdJson<T>(Stream stream)
+    #pragma warning restore CA1859 // Use concrete types when possible for improved performance
     {
         using var textReader = new StreamReader(stream, new UTF8Encoding(false, true), true, 1024, true);
 

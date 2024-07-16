@@ -5,7 +5,7 @@ Content-Type: application/json
     {
       "id": "12345",
       "role": "user",
-      "content": "what do you know about influenza",
+      "content": "find a list of patients with influenza in the notes",
       "date": "2024-07-15T19:13:12.943Z"
     }
   ]

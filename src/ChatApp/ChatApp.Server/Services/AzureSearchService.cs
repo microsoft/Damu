@@ -12,8 +12,8 @@ namespace ChatApp.Server.Services;
 public class AzureSearchService(SearchClient searchClient)
 {
     [KernelFunction("query_documents_async")]
-    [Description("Query relevant content from Azure Search")]
-    [return: Description("Relevant content text data")]
+    [Description("Query relevant content from unstructured medical notes related to patient interactions")]
+    [return: Description("Relevant medical notes in JSON, including HTML note text in the NoteContent element")]
     public async Task<IActionResult> QueryDocumentsAsync(
         string? query = null,
         float[]? embedding = null,
@@ -77,9 +77,10 @@ public class AzureSearchService(SearchClient searchClient)
             //    searchResultDocument.Document[IndexFields.NoteChunkOrder],
             //    searchResultDocument.Document[IndexFields.NoteId],
             //    searchResultDocument.Score);
-
             searchResults.Add(searchResultDocument);
         }
+        Console.WriteLine($"SearchAsync found {searchResults.Count} relevant documents.");
+        Console.WriteLine("Search results reduced to {0} by KNearestNeighborsCount parameter.", options.VectorSearch.Queries.FirstOrDefault()?.KNearestNeighborsCount);
 
         return new OkObjectResult(searchResults);
     }

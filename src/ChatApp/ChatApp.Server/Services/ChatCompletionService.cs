@@ -21,6 +21,7 @@ public class ChatCompletionService
             MaxTokens = 1024,
             Temperature = 0.5,
             StopSequences = [],
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
         };
 
         var builder = Kernel.CreateBuilder();
@@ -54,14 +55,15 @@ public class ChatCompletionService
 
     public async Task<ChatCompletion> CompleteChat(Message[] messages)
     {
-        var sysmessage = @"You are an agent helping a medical administrator user summarize medical notes.
-                The resulting summary consists only of a list of patient's names and the corresponding MRNs in a table format.
-                There should be no additional language on the response, only the MRN and the name of the patient that corresponds with the notes that match the user's query.
-                If you cannot find information relevant to the question, respond that you found no information. Do not use general knowledge to respond.
+        var sysmessage = @"You are an agent helping a medical researcher find medical notes that fit criteria and supplement with additional data, 
+                using the plugins available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names and the corresponding MRNs in a table format.
+                If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.
                 Sample Answer:
+                (2) notes found:
                 Patient Name	|	MRN	
                 John Johnson 	|	1234567
                 Peter Peterson	| 	7654321
+                User Question:
                 {{query}}";
         var history = new ChatHistory(sysmessage);
 

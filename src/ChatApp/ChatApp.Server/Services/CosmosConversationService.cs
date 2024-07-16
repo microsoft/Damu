@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualBasic;
+using System;
 
 namespace ChatApp.Server.Services;
 
@@ -225,6 +226,34 @@ internal class CosmosConversationService
         {
             return false;
         }
+    }
+
+    public async Task<ItemResponse<HistoryMessage>> CreateMessageAsync(string id, string conversationId, string userId, Message message)
+    {
+        var historyMessage = new HistoryMessage
+        {
+            Id = id,
+            Type = "message",
+            UserId = userId,
+            ConversationId = conversationId,
+            Role = message.Role,
+            Content = message.Content
+        };
+
+
+        //if self.enable_message_feedback:
+        //    message['feedback'] = ''
+
+        var resp = await _container.UpsertItemAsync(historyMessage);
+
+        if (resp.StatusCode != System.Net.HttpStatusCode.OK || resp.StatusCode != System.Net.HttpStatusCode.Created)
+            throw new Exception("Failed to create message.");
+
+        var parentConversation = await GetConversationAsync(userId, conversationId);
+        parentConversation.UpdatedAt = DateTime.UtcNow;
+        await UpdateConversationAsync(userId, parentConversation);
+
+        return resp;
     }
 
 }

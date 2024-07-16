@@ -195,60 +195,39 @@ public static partial class Endpoints
         return Results.Ok(new { conversation_id = dbConversation.Id, messages = results });
     }
 
-    #region NotImplemented
-
-    private static async Task UpdateHistory(HttpContext context)
+    private static async Task<IResult> UpdateHistory(
+        HttpContext context,
+        [FromBody] Conversation conversation,
+        [FromServices] CosmosConversationService history)
     {
-        //authenticated_user = get_authenticated_user_details(request_headers = request.headers)
-        //user_id = authenticated_user["user_principal_id"]
+        var user = GetUser(context);
 
-        //## check request for conversation_id
-        //request_json = await request.get_json()
-        //conversation_id = request_json.get("conversation_id", None)
+        if (user == null)
+            return Results.Unauthorized();
 
-        //try:
-        //    # make sure cosmos is configured
-        //    cosmos_conversation_client = init_cosmosdb_client()
-        //    if not cosmos_conversation_client:
-        //        raise Exception("CosmosDB is not configured or not working")
+        if (string.IsNullOrWhiteSpace(conversation?.Id))
+            return Results.BadRequest("conversation_id is required");
 
-        //    # check for the conversation_id, if the conversation is not set, we will create a new one
-        //    if not conversation_id:
-        //        raise Exception("No conversation_id found")
+        if (conversation.Messages.Count > 0 && conversation.Messages[^1].Role.Equals(AuthorRole.Assistant.ToString(), StringComparison.InvariantCultureIgnoreCase))
+        {
+            if (conversation.Messages.Count > 1 && conversation.Messages[^2].Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            {
+                // write the tool message first                
+                await history.CreateMessageAsync(Guid.NewGuid().ToString(), conversation.Id, user.UserPrincipalId, conversation.Messages[^2]);
+            }
 
-        //    ## Format the incoming message object in the "chat/completions" messages format
-        //    ## then write it to the conversation history in cosmos
-        //    messages = request_json["messages"]
-        //    if len(messages) > 0 and messages[-1]["role"] == "assistant":
-        //        if len(messages) > 1 and messages[-2].get("role", None) == "tool":
-        //            # write the tool message first
-        //            await cosmos_conversation_client.create_message(
-        //                uuid = str(uuid.uuid4()),
-        //                conversation_id = conversation_id,
-        //                user_id = user_id,
-        //                input_message = messages[-2],
-        //            )
-        //        # write the assistant message
-        //        await cosmos_conversation_client.create_message(
-        //            uuid = messages[-1]["id"],
-        //            conversation_id = conversation_id,
-        //            user_id = user_id,
-        //            input_message = messages[-1],
-        //        )
-        //    else:
-        //        raise Exception("No bot messages found")
+            // write the assistant message
+            await history.CreateMessageAsync(Guid.NewGuid().ToString(), conversation.Id, user.UserPrincipalId, conversation.Messages[^1]);
+        }
+        else
+        {
+            return Results.BadRequest("No bot messages found");
+        }
 
-        //    # Submit request to Chat Completions for response
-        //    await cosmos_conversation_client.cosmosdb_client.close()
-        //    response = { "success": True}
-        //    return jsonify(response), 200
-
-        //except Exception as e:
-        //    logging.exception("Exception in /history/update")
-        //    return jsonify({ "error": str(e)}), 500
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return Results.Ok(new { success = true });        
     }
+
+    #region NotImplemented
 
     private static async Task<IResult> GenerateHistory(
         HttpContext context, 

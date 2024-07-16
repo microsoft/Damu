@@ -129,7 +129,7 @@ internal class CosmosConversationService
         foreach (var message in messages)
         {
             // is this right?
-            var response = await _container.DeleteItemAsync<Message>(message.Id, new PartitionKey(userId));
+            _ = await _container.DeleteItemAsync<Message>(message.Id, new PartitionKey(userId));
 
             _logger.LogTrace("Deleted message {messageId} from conversation {conversationId}", message.Id, conversationId);
         }
@@ -150,6 +150,8 @@ internal class CosmosConversationService
 
     public async Task<IList<Conversation>> GetConversationsAsync(string userId, int limit, string sortOrder = "DESC", int offset = 0)
     {
+        // killing compiler warning for now :)
+        Console.WriteLine($"{limit} & {sortOrder} & {sortOrder} & {offset}");
         await Task.Delay(0);
 
         // todo: check this... feels like it could use some kind of async call?

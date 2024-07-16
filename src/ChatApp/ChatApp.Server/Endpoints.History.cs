@@ -32,7 +32,7 @@ public static partial class Endpoints
     private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService conversationService)
     {
         // todo: refactor the UI so that this is can be refactored to make any amount of sense...
-        var (cosmosIsConfigured, exception) = await conversationService.EnsureAsync();
+        var (cosmosIsConfigured, _) = await conversationService.EnsureAsync();
 
         return cosmosIsConfigured
             ? Results.Ok(JsonSerializer.Deserialize<object>(@"{ ""converation"": ""CosmosDB is configured and working""}"))
@@ -104,7 +104,7 @@ public static partial class Endpoints
         if (string.IsNullOrWhiteSpace(conversation?.Id))
             return new BadRequestObjectResult("conversation_id is required");
 
-        var deletedConvo = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
+        _ = await conversationService.DeleteConversationAsync(user.UserPrincipalId, conversation.Id);
 
         var response = new
         {
@@ -279,7 +279,7 @@ public static partial class Endpoints
             var title = await chatCompletionService.GenerateTitleAsync(conversation.Messages);
 
             // should we persist user message here too?
-            var dbConversation = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
+            _ = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
         }
 
         // Format the incoming message object in the "chat/completions" messages format

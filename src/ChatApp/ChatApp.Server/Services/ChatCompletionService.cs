@@ -9,8 +9,8 @@ namespace ChatApp.Server.Services;
 
 public class ChatCompletionService : IChatService
 {
-    private Kernel _kernel;
-    private PromptExecutionSettings _promptSettings;
+    private readonly Kernel _kernel;
+    private readonly PromptExecutionSettings _promptSettings;
 
     public ChatCompletionService(IConfiguration config)
     {
@@ -114,6 +114,7 @@ public class ChatCompletionService : IChatService
 
     public async Task<string> GenerateTitleAsync(List<Message> messages)
     {
+        Console.WriteLine(messages);
         // "Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description."
         
         // is there an OOB summary plugin or do we right our own against a history...?

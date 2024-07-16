@@ -2,7 +2,7 @@
 using System.Text.Json;
 using Microsoft.SemanticKernel;
 
-namespace API
+namespace IndexOrchestration
 {
     public class QueryFhirPlugin
     {

@@ -1,5 +1,5 @@
 #pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-using Api.Models;
+using IndexOrchestration.Models;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
@@ -13,7 +13,7 @@ using Microsoft.SemanticKernel.Text;
 using Newtonsoft.Json;
 using Tiktoken;
 
-namespace Api.Functions;
+namespace IndexOrchestration.Functions;
 
 public class IndexUpserter
 {

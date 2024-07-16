@@ -1,4 +1,4 @@
-﻿namespace Api.Models;
+﻿namespace IndexOrchestration.Models;
 
 internal class SourceNoteRecord
 {

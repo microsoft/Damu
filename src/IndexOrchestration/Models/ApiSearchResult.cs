@@ -1,4 +1,4 @@
-﻿namespace Api.Functions;
+﻿namespace IndexOrchestration.Functions;
 
 public partial class SearchAsync
 {

@@ -8,7 +8,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Text.Json;
 
-namespace API
+namespace IndexOrchestration
 {
     public class ChatFunction
     {

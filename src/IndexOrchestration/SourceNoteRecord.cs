@@ -1,4 +1,4 @@
-﻿namespace Api;
+﻿namespace IndexOrchestration;
 
 internal class SourceNoteRecord
 {

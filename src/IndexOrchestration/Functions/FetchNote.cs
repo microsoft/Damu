@@ -1,4 +1,4 @@
-using Api.Models;
+using IndexOrchestration.Models;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Text;
 
-namespace Api.Functions;
+namespace IndexOrchestration.Functions;
 
 public class FetchNote
 {

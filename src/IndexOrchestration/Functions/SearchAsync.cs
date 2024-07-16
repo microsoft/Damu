@@ -1,4 +1,4 @@
-using Api.Models;
+using IndexOrchestration.Models;
 using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
@@ -7,7 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Api.Functions;
+namespace IndexOrchestration.Functions;
 
 public partial class SearchAsync
 {

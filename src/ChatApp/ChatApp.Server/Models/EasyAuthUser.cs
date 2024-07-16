@@ -6,7 +6,7 @@ namespace ChatApp.Server.Models
     public class EasyAuthUser
     {
         [JsonPropertyName("user_principal_id")]
-        public string UserPrincipalId { get; set; } = "";
+        public string UserPrincipalId { get; set; } = "00000000-f021-4bd6-aa44-b324f63aaff5";
         [JsonPropertyName("user_name")]
         public string Username { get; set; } = "testusername@constoso.com";
         [JsonPropertyName("auth_provider")]

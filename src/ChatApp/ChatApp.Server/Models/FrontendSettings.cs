@@ -15,6 +15,9 @@ public class FrontendSettings
 
     [JsonPropertyName("sanitize_answer")]
     public bool SanitizeAnswer { get; set; } = false;
+
+    [JsonPropertyName("history_enabled")]
+    public bool HistoryEnabled { get; set; } = false;
 }
 
 public class UiSettings

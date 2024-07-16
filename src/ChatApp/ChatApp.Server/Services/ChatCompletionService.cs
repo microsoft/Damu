@@ -7,10 +7,10 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace ChatApp.Server.Services;
 
-public class ChatCompletionService : IChatService
+public class ChatCompletionService
 {
-    private Kernel _kernel;
-    private PromptExecutionSettings _promptSettings;
+    private readonly Kernel _kernel;
+    private readonly PromptExecutionSettings _promptSettings;
 
     public ChatCompletionService(IConfiguration config)
     {
@@ -44,7 +44,7 @@ public class ChatCompletionService : IChatService
         var msg = new Message
         {
             Id = "0000",
-            Role = "user",
+            Role = AuthorRole.User.ToString(),
             Content = prompt,
             Date = DateTime.UtcNow
         };
@@ -72,13 +72,52 @@ public class ChatCompletionService : IChatService
                 Messages = response.Items.Select(item => new Message
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Role = "assistant",
+                    Role = AuthorRole.Assistant.ToString(),
                     Content = item.ToString()!,
                     Date = DateTime.UtcNow
                 }).ToList()
             }]
         };
+
         return result;
+    }
+
+
+
+    public async Task<ChatCompletion> AlternativeCompleteChat(IEnumerable<Message> messages)
+    {
+        var history = new ChatHistory(messages.Select(m => m.ToChatMessageContent()).ToList());
+
+        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
+
+        var result = new ChatCompletion
+        {
+            Id = Guid.NewGuid().ToString(),
+            ApimRequestId = Guid.NewGuid().ToString(),
+            Model = response.ModelId!,
+            Created = DateTime.UtcNow,
+            Choices = [new() {
+                Messages = response.Items.Select(item => new Message
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Role = AuthorRole.Assistant.ToString(),
+                    Content = item.ToString()!,
+                    Date = DateTime.UtcNow
+                }).ToList()
+            }]
+        };
+
+        return result;
+    }
+
+    public async Task<string> GenerateTitleAsync(List<Message> messages)
+    {
+        Console.WriteLine(messages);
+        // "Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description."
+        
+        // is there an OOB summary plugin or do we right our own against a history...?
+        await Task.Delay(0);
+        throw new NotImplementedException();
     }
 }
 

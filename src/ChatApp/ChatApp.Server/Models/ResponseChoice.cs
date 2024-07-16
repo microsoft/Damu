@@ -25,7 +25,7 @@ public record ResponseContext(
     [property: JsonPropertyName("thoughts")] Thoughts[] Thoughts)
 {
     [JsonPropertyName("data_points")]
-    public DataPoints DataPoints { get => new DataPoints(DataPointsContent?.Select(x => $"{x.Title}: {x.Content}").ToArray() ?? Array.Empty<string>()); }
+    public DataPoints DataPoints { get => new(DataPointsContent?.Select(x => $"{x.Title}: {x.Content}").ToArray() ?? []); }
 
     public string ThoughtsString { get => string.Join("\n", Thoughts.Select(x => $"{x.Title}: {x.Description}")); }
 }

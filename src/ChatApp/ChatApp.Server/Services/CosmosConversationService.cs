@@ -1,5 +1,6 @@
 ﻿using ChatApp.Server.Models;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualBasic;
 
@@ -106,58 +107,65 @@ internal class CosmosConversationService
     internal async Task<bool> DeleteConversationsAsync(string userId)
     {
         // todo: is return type of bool worthwile?
-        var conversations = _container.GetItemLinqQueryable<Conversation>()
+        var iterator = _container.GetItemLinqQueryable<Conversation>()
            .Where(m => m.UserId == userId)
-           .OrderBy(m => m.CreatedAt)
-           .ToList();
+           .ToFeedIterator();
 
-        foreach (var conversation in conversations)
-        {
-            var response = await _container.DeleteItemAsync<Conversation>(conversation.Id, new PartitionKey(userId));
+        var tasks = new List<Task>();
+
+        while (iterator.HasMoreResults)
+        {            
+            foreach (var item in await iterator.ReadNextAsync())
+            {
+                tasks.Add(_container.DeleteItemAsync<Conversation>(item.Id, new PartitionKey(userId)));
+            }
         }
+
+        await Task.WhenAll(tasks);
 
         return true;
     }
 
     internal async Task DeleteMessagesAsync(string conversationId, string userId)
     {
-        var messages = await GetMessagesAsync(userId, conversationId);
+        var messages = await GetMessagesAsync(userId, conversationId).ToListAsync();
 
         if (messages == null)
             return;
 
+        var deleteTasks = new List<Task>();
         foreach (var message in messages)
         {
             // is this right?
-            _ = await _container.DeleteItemAsync<Message>(message.Id, new PartitionKey(userId));
+            deleteTasks.Add(_container.DeleteItemAsync<Message>(message.Id, new PartitionKey(userId)));
 
             _logger.LogTrace("Deleted message {messageId} from conversation {conversationId}", message.Id, conversationId);
         }
+        await Task.WhenAll(deleteTasks);
     }
 
-    internal async Task<IList<HistoryMessage>> GetMessagesAsync(string userId, string conversationId)
+    internal async IAsyncEnumerable<HistoryMessage> GetMessagesAsync(string userId, string conversationId)
     {
-        await Task.Delay(0);
+        var iterator = _container.GetItemLinqQueryable<HistoryMessage>()
+            .Where(m => m.UserId == userId && m.ConversationId == conversationId)
+            .ToFeedIterator();
 
-        // todo: check this... feels like it could use some kind of async call?
-        var messages = _container.GetItemLinqQueryable<HistoryMessage>()
-            .Where(m => m.ConversationId == conversationId && m.UserId == userId)
-            .OrderBy(m => m.CreatedAt)
-            .ToList();
-
-        return messages;
+        while (iterator.HasMoreResults)
+        {
+            foreach (var session in await iterator.ReadNextAsync())
+            {
+                yield return session;
+            }
+        }
     }
 
     public async IAsyncEnumerable<Conversation>GetConversationsAsync(string userId, int limit, string sortOrder = "DESC", int offset = 0)
     {
-        // todo: add limit, sort order, and offset
-        var query = new QueryDefinition(
-            query: $"SELECT * FROM {_container.Id} c WHERE c.userId = @userid AND c.type = @type"
-        )
-        .WithParameter("@userid", userId)
-        .WithParameter("@type", "conversation");
-
-        using FeedIterator<Conversation> feed = _container.GetItemQueryIterator<Conversation>(query);
+        using FeedIterator<Conversation> feed = _container.GetItemLinqQueryable<Conversation>()
+            .Where(m => m.UserId == userId && m.Type == "conversation")
+            .OrderByDescending(m => m.CreatedAt)
+            .ToFeedIterator();
+        
         while (feed.HasMoreResults)
         {
             foreach (var session in await feed.ReadNextAsync())

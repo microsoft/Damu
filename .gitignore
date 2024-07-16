@@ -399,3 +399,6 @@ FodyWeavers.xsd
 
 .venv/
 src/ChatApp/chatapp.client/.vite/
+__azurite_**.json
+__blobstorage__/
+__queuestorage__/

@@ -77,12 +77,14 @@ public class IndexUpserter
 
     private async Task<Response<SearchIndex>?> CreateOrUpdateIndexAsync()
     {
-        var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
+        var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? 
+            new AzureOpenAIParameters
         {
             ResourceUri = _functionSettings.AzureOpenAiEndpoint,
             DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
         } : new AzureOpenAIParameters
         {
+            ApiKey = _functionSettings.AzureOpenAiKey,
             ResourceUri = _functionSettings.AzureOpenAiEndpoint,
             DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
         };

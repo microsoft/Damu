@@ -7,6 +7,7 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources')
+@allowed(['eastus','westus2'])
 param location string
 
 param appServicePlanName string = ''

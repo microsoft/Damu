@@ -3,7 +3,9 @@ using Azure.Core;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using ChatApp.Server.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
+using Microsoft.Extensions.Logging;
 
 namespace ChatApp.Server.Services;
 
@@ -12,7 +14,7 @@ public class AzureSearchService(SearchClient searchClient)
     [KernelFunction("query_documents_async")]
     [Description("Query relevant content from Azure Search")]
     [return: Description("Relevant content text data")]
-    public async Task<SupportingContentRecord[]> QueryDocumentsAsync(
+    public async Task<IActionResult> QueryDocumentsAsync(
         string? query = null,
         float[]? embedding = null,
         CancellationToken cancellationToken = default)
@@ -63,37 +65,23 @@ public class AzureSearchService(SearchClient searchClient)
         //   "sourcepage": "Northwind_Standard_Benefits_Details-24.pdf",
         //   "sourcefile": "Northwind_Standard_Benefits_Details.pdf"
         // }
-        var sb = new List<SupportingContentRecord>();
-        foreach (var doc in searchResult.GetResults())
-        {
-            doc.Document.TryGetValue("sourcepage", out var sourcePageValue);
-            string? contentValue;
-            try
-            {
-                if (useSemanticCaptions)
-                {
-                    var docs = doc.SemanticSearch.Captions.Select(c => c.Text);
-                    contentValue = string.Join(" . ", docs);
-                }
-                else
-                {
-                    doc.Document.TryGetValue("content", out var value);
-                    contentValue = (string)value;
-                }
-            }
-            catch (ArgumentNullException)
-            {
-                contentValue = null;
-            }
+        //_logger.LogInformation("SearchAsync found {count} relevant documents.", response.TotalCount);
+        //_logger.LogInformation("Search results reduced to {nearestNeighbors} by KNearestNeighborsCount parameter.", options.VectorSearch.Queries.FirstOrDefault()?.KNearestNeighborsCount);
 
-            if (sourcePageValue is string sourcePage && contentValue is string content)
-            {
-                content = content.Replace('\r', ' ').Replace('\n', ' ');
-                sb.Add(new SupportingContentRecord(sourcePage, content));
-            }
+        var searchResults = new List<SearchResult<SearchDocument>>();
+
+        await foreach (SearchResult<SearchDocument> searchResultDocument in searchResult.GetResultsAsync())
+        {
+            //_logger.LogTrace(
+            //    "Search results include the chunk in order {noteChunkOrder} of note with NodeId {noteId} with a score of {score}.",
+            //    searchResultDocument.Document[IndexFields.NoteChunkOrder],
+            //    searchResultDocument.Document[IndexFields.NoteId],
+            //    searchResultDocument.Score);
+
+            searchResults.Add(searchResultDocument);
         }
 
-        return [.. sb];
+        return new OkObjectResult(searchResults);
     }
 
 }

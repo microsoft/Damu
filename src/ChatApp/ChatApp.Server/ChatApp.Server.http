@@ -1,14 +1,12 @@
-@Server_HostAddress = http://localhost:5278
-
-POST http://localhost:5278/conversation
+POST https://localhost:7159/conversation
 Content-Type: application/json
 {
   "messages": [
     {
       "id": "12345",
       "role": "user",
-      "content": "What can you tell me about Influenza?",
-      "date": "2024-07-15T23:19:18.686Z"
+      "content": "what do you know about influenza",
+      "date": "2024-07-15T19:13:12.943Z"
     }
   ]
 }

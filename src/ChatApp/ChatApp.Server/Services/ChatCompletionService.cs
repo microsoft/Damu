@@ -57,7 +57,7 @@ public class ChatCompletionService
         var sysmessage = @"You are an agent helping a medical administrator user summarize medical notes.
                 The resulting summary consists only of a list of patient's names and the corresponding MRNs in a table format.
                 There should be no additional language on the response, only the MRN and the name of the patient that corresponds with the notes that match the user's query.
-                If you cannot find information relevant to the question, reply with an empty table. Do not use general knowledge to respond.
+                If you cannot find information relevant to the question, respond that you found no information. Do not use general knowledge to respond.
                 Sample Answer:
                 Patient Name	|	MRN	
                 John Johnson 	|	1234567

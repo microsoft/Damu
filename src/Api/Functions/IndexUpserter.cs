@@ -5,13 +5,11 @@ using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
-using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
 using Newtonsoft.Json;
-using System.Reflection.Metadata;
 using Tiktoken;
 
 namespace Api.Functions;
@@ -54,11 +52,18 @@ public class IndexUpserter
             return;
         }
 
+        if (!sourceNoteRecord.NoteId.HasValue)
+        {
+            _logger.LogError("Note record from blob {blobName} has no ID. Skipping indexing.", blobName);
+
+            return;
+        }
+
         _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobName);
 
         List<SearchDocument> sampleDocuments = [];
 
-        if(string.IsNullOrWhiteSpace(sourceNoteRecord.NoteContent))
+        if (string.IsNullOrWhiteSpace(sourceNoteRecord.NoteContent))
         {
             _logger.LogWarning("Note {noteId} has no content. Skipping indexing.", sourceNoteRecord.NoteId);
 
@@ -78,9 +83,66 @@ public class IndexUpserter
             _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", sourceNoteRecord.NoteId);
             sourceNoteRecord.NoteChunk = sourceNoteRecord.NoteContent;
             sourceNoteRecord.NoteChunkOrder = 0;
+            sourceNoteRecord.IndexRecordId = $"{sourceNoteRecord.NoteId}-{sourceNoteRecord.NoteChunkOrder}";
             sampleDocuments = [await ConvertToSearchDocumentAsync(sourceNoteRecord)];
         }
 
+
+        await DeleteOldChunksAsync(sourceNoteRecord.NoteId.Value, sampleDocuments);
+
+
+        await LoadIndexAsync(sampleDocuments);
+    }
+
+    private async Task DeleteOldChunksAsync(long noteId, List<SearchDocument> documents)
+    {
+        var lastChunkIndex = documents
+            .OrderBy(c => c[IndexFields.NoteChunkOrder])
+            .Select(c => int.Parse(c[IndexFields.NoteChunkOrder] as string ?? string.Empty))
+            .LastOrDefault();
+
+        var oldChunksToDelete = new List<string>();
+
+        // intellisense not recognizing NoteId cannot be null here...
+        await foreach (var indexRecordId in GetExistingIndexRecordsAsync(noteId))
+        {
+            var oldChunkOrder = int.Parse(indexRecordId.Split('-')[^1]);
+
+            if (oldChunkOrder > lastChunkIndex)
+                oldChunksToDelete.Add(indexRecordId);
+        }
+
+        Response<IndexDocumentsResult>? deleteDocumentsResult = null;
+
+        if (oldChunksToDelete.Count > 0)
+        {
+            _logger.LogInformation("Deleting {count} old chunks for note {noteId}...", oldChunksToDelete.Count, noteId);
+
+            _logger.LogTrace("Old chunks to delete: {chunks}", string.Join(',', oldChunksToDelete));
+
+            try
+            {
+                deleteDocumentsResult = await _searchClient.DeleteDocumentsAsync(oldChunksToDelete);
+            }
+            catch (AggregateException aggregateException)
+            {
+                _logger.LogError("Partial failures detected. Some documents failed to delete.");
+
+                foreach (var exception in aggregateException.InnerExceptions)
+                {
+                    _logger.LogError("{exception}", exception.Message);
+                }
+            }
+
+            foreach (var deleteResult in deleteDocumentsResult?.Value?.Results ?? [])
+            {
+                _logger.LogTrace("Deleted document {id} with status {status}.", deleteResult.Key, deleteResult.Status);
+            }
+        }
+    }
+
+    private async Task LoadIndexAsync(List<SearchDocument> documents)
+    {
         Response<IndexDocumentsResult>? indexingResult = null;
 
         try
@@ -90,9 +152,9 @@ public class IndexUpserter
                 ThrowOnAnyError = true
             };
 
-            _logger.LogInformation("Loading {count} index records to index...", sampleDocuments.Count);
+            _logger.LogInformation("Loading {count} index records to index...", documents.Count);
 
-            indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(sampleDocuments), opts);
+            indexingResult = await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.MergeOrUpload(documents), opts);
         }
         catch (AggregateException aggregateException)
         {
@@ -149,6 +211,9 @@ public class IndexUpserter
         if (chunkOrder != null)
             sourceNote.NoteChunkOrder = chunkOrder;
 
+        // this composite key means that MergeOrUpload will overwrite the previous chunk in any size increase scenarios for source material
+        sourceNote.IndexRecordId = $"{sourceNote.NoteId}-{sourceNote.NoteChunkOrder}";
+
         var dictionary = sourceNote.ToDictionary();
 
         if (!string.IsNullOrWhiteSpace(sourceNote.NoteChunk))
@@ -177,6 +242,28 @@ public class IndexUpserter
         var encoder = ModelToEncoder.For(_functionSettings.AzureOpenAiEmbeddingModel);
 
         return encoder.CountTokens(text);
+    }
+
+    /// <summary>
+    /// Get a list of records in the index that have the same noteId as the current note
+    /// </summary>
+    /// <param name="noteId">Id of the note that returned records are associated with</param>
+    /// <returns>List of IndexRecordIds of matched records</returns>
+    private async IAsyncEnumerable<string> GetExistingIndexRecordsAsync(long noteId)
+    {
+        var searchOptions = new SearchOptions
+        {
+            Filter = $"noteId eq {noteId}",
+            IncludeTotalCount = true,
+            Select = { IndexFields.IndexRecordId }
+        };
+
+        var result = await _searchClient.SearchAsync<string>("*", searchOptions);
+
+        await foreach (var record in result.Value.GetResultsAsync())
+        {
+            yield return record.Document;
+        }
     }
 }
 #pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

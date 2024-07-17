@@ -19,7 +19,7 @@ internal class SourceNoteRecord
         AuthorLastName = original.AuthorLastName;
         Department = original.Department;
     }
-    public Guid? IndexRecordId { get; set; } = Guid.NewGuid();
+    public string? IndexRecordId { get; set; } = string.Empty;
     public long? NoteId { get; set; }
     public string? NoteContent { get; set; } = string.Empty;
     public string? NoteChunk { get; set; } = string.Empty;

@@ -8,20 +8,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Api.Functions;
 
-public class CreateIndex
+public class UpsertIndex
 {
     private readonly FunctionSettings _functionSettings;
-    private readonly ILogger<CreateIndex> _logger;
+    private readonly ILogger<UpsertIndex> _logger;
     private readonly SearchIndexClient _searchIndexClient;
 
-    public CreateIndex(FunctionSettings functionSettings, ILogger<CreateIndex> logger, SearchIndexClient searchIndexClient)
+    public UpsertIndex(FunctionSettings functionSettings, ILogger<UpsertIndex> logger, SearchIndexClient searchIndexClient)
     {
         _functionSettings = functionSettings;
         _logger = logger;
         _searchIndexClient = searchIndexClient;
     }
 
-    [Function(nameof(CreateIndex))]
+    [Function("UpsertIndex"))]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest request)
     {
         var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
@@ -128,7 +128,7 @@ public class CreateIndex
             }
         };
 
-        var newIndex = await _searchIndexClient.CreateIndexAsync(index);
+        var newIndex = await _searchIndexClient.CreateOrUpdateIndexAsync(index);
 
         if (newIndex.Value == null)
         {

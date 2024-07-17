@@ -49,9 +49,6 @@ var host = new HostBuilder()
             ? new SearchIndexClient(settings.SearchEndpoint, new DefaultAzureCredential())
             : new SearchIndexClient(settings.SearchEndpoint, new AzureKeyCredential(settings.SearchKey));
         });
-
-        services.AddHttpClient(); // Registers IHttpClientFactory and allows you to use HttpClient
-        services.AddSingleton<QueryFhirPlugin>();
     })
     .Build();
 

@@ -2,6 +2,7 @@
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Storage.Blobs;
+using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
@@ -48,7 +49,7 @@ internal static class ChatAppExtensions
 
             var storageEndpoint = storageOptions?.BlobStorageEndpoint;
 
-            storageEndpoint = storageEndpoint.Substring(0, storageEndpoint.LastIndexOf('/'));
+            storageEndpoint = storageEndpoint?.Substring(0, storageEndpoint.LastIndexOf('/'));
             var containerUri = new Uri($"{storageEndpoint}/{storageOptions?.BlobStorageContainerName}");
 
             return string.IsNullOrWhiteSpace(storageOptions?.BlobStorageConnectionString)

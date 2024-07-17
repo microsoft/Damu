@@ -1,4 +1,4 @@
-﻿namespace ChatApp.Server;
+﻿namespace ChatApp.Server.Models;
 
 public class CosmosOptions
 {

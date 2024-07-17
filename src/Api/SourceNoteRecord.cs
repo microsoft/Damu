@@ -18,6 +18,10 @@ internal class SourceNoteRecord
         AuthorFirstName = original.AuthorFirstName;
         AuthorLastName = original.AuthorLastName;
         Department = original.Department;
+        FilePath = original.FilePath;
+        Title = original.Title;
+        Url = original.Url;
+        // is there an easier way to do a deep copy but ignore some properties?
     }
     public string? IndexRecordId { get; set; } = string.Empty;
     public long? NoteId { get; set; }

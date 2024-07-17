@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35004.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api", "Api\Api.csproj", "{F6990FAE-C7FF-40D1-8795-AD48FF01C1A8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IndexOrchestration", "IndexOrchestration\IndexOrchestration.csproj", "{F6990FAE-C7FF-40D1-8795-AD48FF01C1A8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp.Server", "ChatApp\ChatApp.Server\ChatApp.Server.csproj", "{E701DF6F-5734-4C20-8FDC-A3799BB0033C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatApp.Server", "ChatApp\ChatApp.Server\ChatApp.Server.csproj", "{E701DF6F-5734-4C20-8FDC-A3799BB0033C}"
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "chatapp.client", "ChatApp\chatapp.client\chatapp.client.esproj", "{33864D1C-3A63-40C0-81BF-D3E091366F70}"
 EndProject

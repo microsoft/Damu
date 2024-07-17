@@ -64,7 +64,7 @@ public class IndexUpserter
     {
         List<SearchDocument> sampleDocuments = [];
 
-        var content = !string.IsNullOrWhiteSpace(document.NoteInHtml) ? document.NoteInHtml : string.Empty;
+        var content = !string.IsNullOrWhiteSpace(document.NoteContent) ? document.NoteContent : string.Empty;
 
         var tokenCount = GetTokenCount(content);
 
@@ -114,12 +114,12 @@ public class IndexUpserter
 
     private async Task<List<SearchDocument>> RecursivelySplitNoteContent(SourceNoteRecord sourceNote)
     {
-        if (string.IsNullOrWhiteSpace(sourceNote.NoteInHtml))
+        if (string.IsNullOrWhiteSpace(sourceNote.NoteContent))
             return [];
 
         var analyzeRequest = new AnalyzeDocumentContent
         {
-            Base64Source = BinaryData.FromString(sourceNote.NoteInHtml)
+            Base64Source = BinaryData.FromString(sourceNote.NoteContent)
         };
 
         var analysis = await _docIntelClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", analyzeRequest, outputContentFormat: ContentFormat.Markdown);

@@ -240,17 +240,10 @@ module function './app/function.bicep' = {
       AzureOpenAiEmbeddingDeployment: embeddingDeploymentName
       AzureOpenAiEmbeddingModel: embeddingModelName
       AzureOpenAiEndpoint: openAi.outputs.endpoint
-      AzureWebJobsStorage: ''
       DocIntelEndPoint: formRecognizer.outputs.endpoint
-      FHIRAuthClientId: ''
-      FHIRAuthClientSecret: ''
-      FHIRAuthResource: ''
-      FHIRAuthTenantId: ''
-      FHIRServerUrl: ''
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
       IncomingBlobConnStr: ''
       ModelDimensions: '3072'
-      NoteJsonFileName: 'modified_Notes.ndjson' // this will be removed after refactoring of the indexing functions for single file format expectation
       ProjectPrefix: 'damu'
       SearchEndpoint: searchService.outputs.endpoint
     }

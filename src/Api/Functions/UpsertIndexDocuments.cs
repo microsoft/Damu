@@ -6,7 +6,6 @@ using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Models;
-using Azure.Storage.Blobs.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
@@ -36,10 +35,12 @@ public class UpsertIndexDocuments
         _searchIndexClient = searchIndexClient;
     }
 
+    // todo: is there a way to more dynamically get the path or need it be 'hardcoded'?
+    // , Source = BlobTriggerSource.LogsAndContainerScan
     [Function(nameof(UpsertIndexDocuments))]
-    public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobPath, Uri blobUri)
+    public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobName)
     {
-        _logger.LogInformation("Processing blob {blobName}...", blobPath);
+        _logger.LogInformation("Processing blob {blobName}...", blobName);
 
         // clean out BOM if present
         var cleanedContent = blobContent.Trim().Replace("\uFEFF", "");
@@ -48,23 +49,23 @@ public class UpsertIndexDocuments
 
         if (sourceNoteRecord == null)
         {
-            _logger.LogError("Failed to deserialize note record from blob {blobName}.", blobPath);
+            _logger.LogError("Failed to deserialize note record from blob {blobName}.", blobName);
 
             return;
         }
 
         if (!sourceNoteRecord.NoteId.HasValue)
         {
-            _logger.LogError("Note record from blob {blobName} has no ID. Skipping indexing.", blobPath);
+            _logger.LogError("Note record from blob {blobName} has no ID. Skipping indexing.", blobName);
 
             return;
         }
 
-        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobPath);
+        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobName);
 
-        sourceNoteRecord.FilePath = blobPath;
-        sourceNoteRecord.Title = blobPath.Split('/').LastOrDefault();
-        sourceNoteRecord.Url = blobUri.ToString();
+        sourceNoteRecord.FilePath = $"notes/{blobName}"; // todo: dynamicall get path? can we retrieve from the binding?
+        sourceNoteRecord.Title = blobName;
+        sourceNoteRecord.Url = sourceNoteRecord.FilePath; // todo: does this need to be an actual Uri? is the reconstructed relative path sufficient?
 
         List<SearchDocument> sampleDocuments = [];
 
@@ -103,7 +104,7 @@ public class UpsertIndexDocuments
     {
         var lastChunkIndex = documents
             .OrderBy(c => c[IndexFields.NoteChunkOrder])
-            .Select(c => int.Parse(c[IndexFields.NoteChunkOrder] as string ?? string.Empty))
+            .Select(c => (int)c[IndexFields.NoteChunkOrder])
             .LastOrDefault();
 
         var oldChunksToDelete = new List<string>();
@@ -127,7 +128,7 @@ public class UpsertIndexDocuments
 
             try
             {
-                deleteDocumentsResult = await _searchClient.DeleteDocumentsAsync(oldChunksToDelete);
+                deleteDocumentsResult = await _searchClient.DeleteDocumentsAsync(oldChunksToDelete.Select(s => new NoteRecordPointer(s)));
             }
             catch (AggregateException aggregateException)
             {
@@ -258,17 +259,24 @@ public class UpsertIndexDocuments
     {
         var searchOptions = new SearchOptions
         {
-            Filter = $"noteId eq {noteId}",
+            Filter = $"NoteId eq {noteId}",
             IncludeTotalCount = true,
             Select = { IndexFields.IndexRecordId }
         };
 
-        var result = await _searchClient.SearchAsync<string>("*", searchOptions);
+        var result = await _searchClient.SearchAsync<NoteRecordPointer>("*", searchOptions);
 
         await foreach (var record in result.Value.GetResultsAsync())
         {
-            yield return record.Document;
+            yield return record.Document.IndexRecordId;
         }
     }
+}
+
+public class NoteRecordPointer
+{
+    public NoteRecordPointer() { }
+    public NoteRecordPointer(string indexRecordId) { IndexRecordId = indexRecordId; }
+    public string IndexRecordId { get; set; } = string.Empty;
 }
 #pragma warning restore SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

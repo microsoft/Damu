@@ -69,6 +69,20 @@ public class CreateIndex
                             ContentFields =
                             {
                                 new SemanticField(IndexFields.NoteChunk)
+                            },
+                            KeywordsFields =
+                            {
+                                new SemanticField(IndexFields.NoteChunk),
+                                new SemanticField(IndexFields.NoteType),
+                                new SemanticField(IndexFields.NoteStatus),
+                                new SemanticField(IndexFields.AuthorId),
+                                new SemanticField(IndexFields.AuthorFirstName),
+                                new SemanticField(IndexFields.AuthorLastName),
+                                new SemanticField(IndexFields.Department),
+                                new SemanticField(IndexFields.Gender),
+                                new SemanticField(IndexFields.FilePath),
+                                new SemanticField(IndexFields.Title),
+                                new SemanticField(IndexFields.Url)
                             }
                         })
                 }
@@ -104,9 +118,9 @@ public class CreateIndex
                 new SearchField(IndexFields.BirthDate, SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true },
 
                 // for citations
-                new SearchableField(IndexFields.FilePath),
-                new SearchableField(IndexFields.Title),
-                new SearchableField(IndexFields.Url),
+                new SearchableField(IndexFields.FilePath) { IsFilterable = true },
+                new SearchableField(IndexFields.Title) { IsFilterable = true },
+                new SearchableField(IndexFields.Url) { IsFilterable = true }
             }
         };
 

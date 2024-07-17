@@ -56,12 +56,13 @@ public class ChatCompletionService
 
     public async Task<ChatCompletion> CompleteChat(Message[] messages)
     {
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         string documentContents = string.Empty;
         if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)))
         {
             // parse out the document contents
             var toolContent = JsonSerializer.Deserialize<ToolContentResponse>(
-                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).Content);
+                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).Content, options);
             documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}:{c.PatientName}:{c.MRN}"));
         }
         else
@@ -76,11 +77,12 @@ public class ChatCompletionService
                 You are an agent helping a medical researcher find medical notes that fit criteria and supplement with additional data, 
                 using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names, corresponding MRNs, and source reference in a table format.
                 If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.                
+                Source references must be in the format [doc1], [doc2], etc.
                 Sample Answer:
                 (2) notes found:\n
                 Patient Name	|	MRN	    |  Citation \n
-                John Johnson 	|	1234567 |  [reference1.json] \n
-                Peter Peterson	| 	7654321 |  [reference2.json]
+                John Johnson 	|	1234567 |  [doc1] \n
+                Peter Peterson	| 	7654321 |  [doc2]
                 """;
         var history = new ChatHistory(sysmessage);
 

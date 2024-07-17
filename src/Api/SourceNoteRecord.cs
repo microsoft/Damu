@@ -7,8 +7,6 @@ internal class SourceNoteRecord
     {
         NoteId = original.NoteId;
         NoteContent = original.NoteContent;
-        NoteInHtml = original.NoteInHtml;
-        NoteInText = original.NoteInText;
         NoteChunk = string.IsNullOrWhiteSpace(chunk) ? original.NoteChunk : chunk;
         NoteChunkOrder = chunkIndex == null ? original.NoteChunkOrder : chunkIndex;
         NoteChunkVector = original.NoteChunkVector;
@@ -20,15 +18,17 @@ internal class SourceNoteRecord
         AuthorFirstName = original.AuthorFirstName;
         AuthorLastName = original.AuthorLastName;
         Department = original.Department;
+        FilePath = original.FilePath;
+        Title = original.Title;
+        Url = original.Url;
+        // is there an easier way to do a deep copy but ignore some properties?
     }
-    public Guid? IndexRecordId { get; set; } = Guid.NewGuid();
+    public string? IndexRecordId { get; set; } = string.Empty;
     public long? NoteId { get; set; }
     public string? NoteContent { get; set; } = string.Empty;
-    public string? NoteInHtml { get; set; } = string.Empty;
-    public string? NoteInText { get; set; } = string.Empty;
     public string? NoteChunk { get; set; } = string.Empty;
     public int? NoteChunkOrder { get; set; }
-    public List<float> NoteChunkVector { get; set; } = []; // ?
+    public List<float> NoteChunkVector { get; set; } = [];
     public long? CSN { get; set; }
     public long? MRN { get; set; }
     public string? NoteType { get; set; } = string.Empty;
@@ -40,13 +40,17 @@ internal class SourceNoteRecord
     public string? Gender { get; set; } = string.Empty;
     public DateTimeOffset? BirthDate { get; set; }
 
-    public Dictionary<string, object?> ToDictionary()
+    public string? FilePath { get; set; } = string.Empty;
+    public string? Title { get; set; } = string.Empty;
+    public string? Url { get; set; } = string.Empty;
+
+    public Dictionary<string, object?> ToDictionaryForIndexing()
     {
         var result = new Dictionary<string, object?>();
 
         foreach (var key in this.GetType().GetProperties())
         {
-            if (key.Name == "NoteContent" || key.Name == "NoteInHtml" || key.Name == "NoteInText")
+            if (string.Equals(key.Name, nameof(NoteContent), StringComparison.OrdinalIgnoreCase))
                 continue;
 
             result.Add(key.Name, key.GetValue(this));

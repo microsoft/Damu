@@ -17,4 +17,8 @@ internal static class IndexFields
     public const string Department = "Department";
     public const string Gender = "Gender";
     public const string BirthDate = "BirthDate";
+
+    public const string FilePath = "FilePath";
+    public const string Title = "Title";
+    public const string Url = "Url";
 }

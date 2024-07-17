@@ -107,6 +107,14 @@ public class ChatCompletionService
             }]
         };
 
+        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+        {
+            // add the tool message back in
+            result.Choices[0].Messages = result.Choices[0].Messages.Prepend(            
+                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            ).ToList();
+        }
+
         return result;
     }
 

@@ -55,12 +55,20 @@ public class AzureSearchService(SearchClient searchClient)
         var sb = new List<SupportingContentRecord>();
         await foreach (var doc in searchResult.GetResultsAsync())
         {
+            // "FilePath": "notes/1000054825.json",
+            // "Title": "1000054825.json",
+            // "Url": "notes/1000054825.json"
+            doc.Document.TryGetValue("NoteChunkOrder", out var chunkOrderValue);
+
+            doc.Document.TryGetValue("Title", out var titleValue);
+            doc.Document.TryGetValue("FilePath", out var filePathValue);
+            doc.Document.TryGetValue("Url", out var urlValue);
+
             // parse the search results into SupportingContentRecord
-            doc.Document.TryGetValue("sourcepage", out var sourcePageValue);
             string? contentValue;
             try
             {
-                doc.Document.TryGetValue("content", out var value);
+                doc.Document.TryGetValue("NoteChunk", out var value);
                 contentValue = (string)value;
             }
             catch (ArgumentNullException)
@@ -68,10 +76,14 @@ public class AzureSearchService(SearchClient searchClient)
                 contentValue = null;
             }
 
-            if (sourcePageValue is string sourcePage && contentValue is string content)
+            if (titleValue is string title && 
+                filePathValue is string filePath &&
+                urlValue is string url &&
+                chunkOrderValue is int chunkOrder &&
+                contentValue is string content)
             {
                 content = content.Replace('\r', ' ').Replace('\n', ' ');
-                sb.Add(new SupportingContentRecord(sourcePage, content, "", "", "0"));
+                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString()));
             }
         }
 

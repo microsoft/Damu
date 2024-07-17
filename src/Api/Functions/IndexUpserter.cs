@@ -11,6 +11,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
 using Newtonsoft.Json;
+using System.Reflection.Metadata;
 using Tiktoken;
 
 namespace Api.Functions;
@@ -37,49 +38,47 @@ public class IndexUpserter
     }
 
     [Function(nameof(IndexUpserter))]
-    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content, string name)
+    public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobName)
     {
-        _logger.LogInformation("Processing blob {name}...", name);
+        _logger.LogInformation("Processing blob {blobName}...", blobName);
 
         // clean out BOM if present
-        var cleanedContent = content.Trim().Replace("\uFEFF", "");
+        var cleanedContent = blobContent.Trim().Replace("\uFEFF", "");
 
         var sourceNoteRecord = JsonConvert.DeserializeObject<SourceNoteRecord>(cleanedContent);
 
         if (sourceNoteRecord == null)
         {
-            _logger.LogError("Failed to deserialize note record from blob {name}.", name);
+            _logger.LogError("Failed to deserialize note record from blob {blobName}.", blobName);
 
             return;
         }
 
-        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {name}.", sourceNoteRecord.NoteId, name);
+        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobName);
 
-        await LoadIndexAsync(sourceNoteRecord);
-
-        _logger.LogInformation("Index loading completed.");
-    }
-
-    private async Task LoadIndexAsync(SourceNoteRecord document)
-    {
         List<SearchDocument> sampleDocuments = [];
 
-        var content = !string.IsNullOrWhiteSpace(document.NoteContent) ? document.NoteContent : string.Empty;
+        if(string.IsNullOrWhiteSpace(sourceNoteRecord.NoteContent))
+        {
+            _logger.LogWarning("Note {noteId} has no content. Skipping indexing.", sourceNoteRecord.NoteId);
 
-        var tokenCount = GetTokenCount(content);
+            return;
+        }
+
+        var tokenCount = GetTokenCount(sourceNoteRecord.NoteContent);
 
         if (tokenCount > _functionSettings.MaxChunkSize)
         {
-            _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", document.NoteId);
-            sampleDocuments = await RecursivelySplitNoteContent(document);
-            _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", document.NoteId, sampleDocuments.Count);
+            _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", sourceNoteRecord.NoteId);
+            sampleDocuments = await RecursivelySplitNoteContent(sourceNoteRecord);
+            _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", sourceNoteRecord.NoteId, sampleDocuments.Count);
         }
         else
         {
-            _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", document.NoteId);
-            document.NoteChunk = content;
-            document.NoteChunkOrder = 0;
-            sampleDocuments = [await ConvertToSearchDocumentAsync(document)];
+            _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", sourceNoteRecord.NoteId);
+            sourceNoteRecord.NoteChunk = sourceNoteRecord.NoteContent;
+            sourceNoteRecord.NoteChunkOrder = 0;
+            sampleDocuments = [await ConvertToSearchDocumentAsync(sourceNoteRecord)];
         }
 
         Response<IndexDocumentsResult>? indexingResult = null;
@@ -98,6 +97,7 @@ public class IndexUpserter
         catch (AggregateException aggregateException)
         {
             _logger.LogError("Partial failures detected. Some documents failed to index.");
+
             foreach (var exception in aggregateException.InnerExceptions)
             {
                 _logger.LogError("{exception}", exception.Message);
@@ -110,6 +110,8 @@ public class IndexUpserter
                 _logger.LogInformation("Successfully indexed {count} documents.", indexingResult.Value.Results.Count);
             }
         }
+
+        _logger.LogInformation("Index loading completed.");
     }
 
     private async Task<List<SearchDocument>> RecursivelySplitNoteContent(SourceNoteRecord sourceNote)
@@ -160,6 +162,7 @@ public class IndexUpserter
 
         return document;
     }
+
     private async Task<ReadOnlyMemory<float>> GenerateEmbeddingAsync(string text)
     {
         _logger.LogTrace("Generating embedding for text: {text}", text);

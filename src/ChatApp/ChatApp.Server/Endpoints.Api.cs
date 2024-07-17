@@ -34,7 +34,7 @@ public static partial class Endpoints
         [FromBody] ConversationRequest history)
     {
         // filter out any existing tool messages (search results)
-        history.Messages = history.Messages.Where(m => m.Role != AuthorRole.Tool.ToString().ToLower()).ToList();
+        history.Messages = history.Messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).ToList();
         // do the search here
         var searchResults = await search.QueryDocumentsAsync(history.Messages[^1].Content);
         var toolMsg = new Message

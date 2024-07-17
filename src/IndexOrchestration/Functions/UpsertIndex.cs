@@ -21,7 +21,7 @@ public class UpsertIndex
         _searchIndexClient = searchIndexClient;
     }
 
-    [Function("UpsertIndex"))]
+    [Function("UpsertIndex")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest request)
     {
         var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters

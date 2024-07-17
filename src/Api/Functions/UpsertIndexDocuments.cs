@@ -14,10 +14,10 @@ using Tiktoken;
 
 namespace Api.Functions;
 
-public class IndexUpserter
+public class UpsertIndexDocuments
 {
     private readonly FunctionSettings _functionSettings;
-    private readonly ILogger<IndexUpserter> _logger;
+    private readonly ILogger<UpsertIndexDocuments> _logger;
     private readonly OpenAIClient _openAIClient;
     private readonly SearchClient _searchClient;
     private readonly SearchIndexClient _searchIndexClient;
@@ -25,7 +25,7 @@ public class IndexUpserter
 
     // todo: move to orchestration function pattern to handle larger throughput
     // todo: add in upsert for individual notes
-    public IndexUpserter(DocumentIntelligenceClient docIntelClient, FunctionSettings functionSettings, ILogger<IndexUpserter> logger, OpenAIClient openAiClient, SearchClient searchClient, SearchIndexClient searchIndexClient)
+    public UpsertIndexDocuments(DocumentIntelligenceClient docIntelClient, FunctionSettings functionSettings, ILogger<UpsertIndexDocuments> logger, OpenAIClient openAiClient, SearchClient searchClient, SearchIndexClient searchIndexClient)
     {
         _docIntelClient = docIntelClient;
         _functionSettings = functionSettings;
@@ -35,7 +35,7 @@ public class IndexUpserter
         _searchIndexClient = searchIndexClient;
     }
 
-    [Function(nameof(IndexUpserter))]
+    [Function(nameof(UpsertIndexDocuments))]
     public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobName)
     {
         _logger.LogInformation("Processing blob {blobName}...", blobName);

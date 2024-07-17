@@ -5,8 +5,13 @@ Content-Type: application/json
     {
       "id": "12345",
       "role": "user",
-      "content": "find a list of patients with influenza in the notes",
+      "content": "give me a list of patients with influenza",
       "date": "2024-07-15T19:13:12.943Z"
     }
   ]
 }
+
+###
+
+POST https://localhost:7159/search?query="hello%20world"
+Content-Type: application

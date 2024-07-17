@@ -16,6 +16,7 @@ public static partial class Endpoints
             .WithOpenApi();
 
         app.MapPost("/conversation", PostConversation);
+        app.MapPost("/search", PostSearch);
 
         app.MapGet("notes/{id}", async (long id, [FromServices] NoteService noteService) =>
         {
@@ -46,6 +47,14 @@ public static partial class Endpoints
         // call completion??
         // 
         return Results.Ok(await chat.CompleteChat([.. history.Messages]));
+    }
+
+    private static async Task<IResult> PostSearch(
+        [FromServices] AzureSearchService search,
+        [FromQuery] string query)
+    {
+        var searchResults = await search.QueryDocumentsAsync(query);
+        return Results.Ok(searchResults);
     }
 
 }

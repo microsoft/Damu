@@ -37,12 +37,13 @@ public static partial class Endpoints
         history.Messages = history.Messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).ToList();
         // do the search here
         var searchResults = await search.QueryDocumentsAsync(history.Messages[^1].Content);
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var toolMsg = new Message
         {
             Id = Guid.NewGuid().ToString(),
             Role = AuthorRole.Tool.ToString().ToLower(),
             Date = DateTime.UtcNow,
-            Content = JsonSerializer.Serialize(searchResults)
+            Content = JsonSerializer.Serialize<ToolContentResponse>(searchResults, options)
         };
         // add search results to the conversation
         history.Messages.Add(toolMsg);

@@ -16,13 +16,13 @@ public class CreateIndex
 
     public CreateIndex(FunctionSettings functionSettings, ILogger<CreateIndex> logger, SearchIndexClient searchIndexClient)
     {
-    _functionSettings = functionSettings;
+        _functionSettings = functionSettings;
         _logger = logger;
-    _searchIndexClient = searchIndexClient;
+        _searchIndexClient = searchIndexClient;
     }
 
-    [Function("CreateIndex")]
-    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest _)
+    [Function(nameof(CreateIndex))]
+    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest request)
     {
         var aoaiParams = string.IsNullOrWhiteSpace(_functionSettings.AzureOpenAiKey) ? new AzureOpenAIParameters
         {
@@ -112,7 +112,7 @@ public class CreateIndex
 
         var newIndex = await _searchIndexClient.CreateIndexAsync(index);
 
-        if(newIndex.Value == null)
+        if (newIndex.Value == null)
         {
             _logger.LogError("Failed to create index. {reason}", newIndex?.GetRawResponse()?.ReasonPhrase);
 

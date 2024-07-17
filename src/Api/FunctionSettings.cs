@@ -13,8 +13,6 @@ public class FunctionSettings
         AzureOpenAiEmbeddingDeployment = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingDeployment"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingDeployment") : envVars["AzureOpenAiEmbeddingDeployment"]?.ToString()!;
         AzureOpenAiEmbeddingModel = string.IsNullOrWhiteSpace(envVars["AzureOpenAiEmbeddingModel"]?.ToString()) ? throw new NullReferenceException("AzureOpenAiEmbeddingModel") : envVars["AzureOpenAiEmbeddingModel"]?.ToString()!;
 
-        NoteJsonFileName = string.IsNullOrWhiteSpace(envVars["NoteJsonFileName"]?.ToString()) ? throw new NullReferenceException("NoteJsonFileName") : envVars["NoteJsonFileName"]?.ToString()!;
-
         var prefix = string.IsNullOrWhiteSpace(envVars["ProjectPrefix"]?.ToString()) ? "damu" : envVars["ProjectPrefix"]?.ToString();
 
         SearchIndexName = $"{prefix}-index";
@@ -61,7 +59,6 @@ public class FunctionSettings
     }
 
     public readonly string BlobStorageConnStr;
-    public readonly string NoteJsonFileName;
 
     public readonly Uri AzureOpenAiEndpoint;
     public readonly string AzureOpenAiEmbeddingDeployment;

@@ -10,14 +10,10 @@ using Microsoft.Extensions.Logging;
 namespace ChatApp.Server.Services;
 
 public class AzureSearchService(SearchClient searchClient)
-{
-    [KernelFunction("query_documents_async")]
-    [Description("Query relevant content from unstructured medical notes related to patient interactions")]
-    [return: Description("Relevant medical notes in JSON, including HTML note text in the NoteContent element")]
-    public async Task<IActionResult> QueryDocumentsAsync(
+{   
+    public async Task<ToolContentResponse> QueryDocumentsAsync(
         string? query = null,
-        float[]? embedding = null,
-        CancellationToken cancellationToken = default)
+        float[]? embedding = null)
     {
         if (query is null && embedding is null)
         {
@@ -38,7 +34,8 @@ public class AzureSearchService(SearchClient searchClient)
             QueryType = SearchQueryType.Full,
             SemanticSearch = new SemanticSearchOptions
             {
-                SemanticConfigurationName = semanticConfigurationName
+                SemanticConfigurationName = semanticConfigurationName,
+                QueryCaption = new(QueryCaptionType.None)
             },
             VectorSearch = new()
             {
@@ -53,7 +50,32 @@ public class AzureSearchService(SearchClient searchClient)
             }
         };
 
-        SearchResults<SearchDocument> searchResult = await searchClient.SearchAsync<SearchDocument>(query, options, cancellationToken=default);
+        SearchResults<SearchDocument> searchResult = await searchClient.SearchAsync<SearchDocument>(query, options);
+
+        var sb = new List<SupportingContentRecord>();
+        await foreach (var doc in searchResult.GetResultsAsync())
+        {
+            doc.Document.TryGetValue("sourcepage", out var sourcePageValue);
+            string? contentValue;
+            try
+            {
+                doc.Document.TryGetValue("content", out var value);
+                contentValue = (string)value;
+            }
+            catch (ArgumentNullException)
+            {
+                contentValue = null;
+            }
+
+            if (sourcePageValue is string sourcePage && contentValue is string content)
+            {
+                content = content.Replace('\r', ' ').Replace('\n', ' ');
+                sb.Add(new SupportingContentRecord(sourcePage, content, "", "", "0"));
+            }
+        }
+
+        return new ToolContentResponse(sb, [query]);
+
 
         // Assemble sources here.
         // Example output for each SearchDocument:

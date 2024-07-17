@@ -67,13 +67,11 @@ public class ChatCompletionService
                 {{query}}";
         var history = new ChatHistory(sysmessage);
 
-        foreach (var message in messages)
-        {
-            history.AddUserMessage(message.Content);
-        }
-
-        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
-
+        messages.Where(m => m.Role.Equals(AuthorRole.User.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            .ToList()
+            .ForEach(m => history.AddUserMessage(m.Content));
+        
+        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings, _kernel);
         var result = new ChatCompletion
         {
             Id = Guid.NewGuid().ToString(),
@@ -84,7 +82,7 @@ public class ChatCompletionService
                 Messages = response.Items.Select(item => new Message
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant.ToString(),
+                    Role = AuthorRole.Assistant.ToString().ToLower(),
                     Content = item.ToString()!,
                     Date = DateTime.UtcNow
                 }).ToList()

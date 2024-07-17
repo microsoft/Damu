@@ -2,6 +2,8 @@
 using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.SemanticKernel.ChatCompletion;
+using System.Text.Json;
 
 namespace ChatApp.Server;
 
@@ -31,9 +33,16 @@ public static partial class Endpoints
         [FromBody] ConversationRequest history)
     {
         // do the search here
-        // var searchResults = await search.QueryDocumentsAsync(history.Messages[0].Content, cancellationToken: default);
+        var searchResults = await search.QueryDocumentsAsync(history.Messages[0].Content);
+        var toolMsg = new Message
+        {
+            Id = Guid.NewGuid().ToString(),
+            Role = AuthorRole.Tool.ToString().ToLower(),
+            Date = DateTime.UtcNow,
+            Content = JsonSerializer.Serialize(searchResults)
+        };
+        history.Messages.Add(toolMsg);
         // stuff results into the ChatHistory[]
-        // TODO: add the phancy plugins and stuff HERE <--
         // call completion??
         // 
         return Results.Ok(await chat.CompleteChat([.. history.Messages]));

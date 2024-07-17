@@ -85,11 +85,11 @@ public class AzureSearchService(SearchClient searchClient)
                 chunkOrderValue is int chunkOrder &&
                 patientFirstNameValue is string patientFirstName &&
                 patientLastNameValue is string patientLastName &&
-                mrnValue is string mrn &&
+                mrnValue is int mrn &&
                 contentValue is string content)
             {
                 content = content.Replace('\r', ' ').Replace('\n', ' ');
-                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString(), $"{patientFirstName} {patientLastNameValue}", mrn));
+                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString(), $"{patientFirstName} {patientLastNameValue}", mrn.ToString()));
             }
         }
 

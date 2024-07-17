@@ -15,6 +15,13 @@ public static partial class Endpoints
 
         app.MapPost("/conversation", PostConversation);
 
+        app.MapGet("notes/{id}", async (long id, [FromServices] NoteService noteService) =>
+        {
+            var note = await noteService.GetNoteAsync(id);
+
+            return note is null ? Results.NotFound() : Results.Ok(note);
+        });
+
         return app;
     }
 

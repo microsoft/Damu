@@ -20,8 +20,11 @@ internal class SourceNoteRecord
         AuthorFirstName = original.AuthorFirstName;
         AuthorLastName = original.AuthorLastName;
         Department = original.Department;
+        FilePath = original.FilePath;
+        Title = original.Title;
+        Url = original.Url;
     }
-    public Guid? IndexRecordId { get; set; } = Guid.NewGuid();
+    public string IndexRecordId { get; set; } = string.Empty;
     public long? NoteId { get; set; }
     public string? NoteContent { get; set; } = string.Empty;
     public string? NoteChunk { get; set; } = string.Empty;
@@ -41,7 +44,11 @@ internal class SourceNoteRecord
     public DateTimeOffset? BirthDate { get; set; }
     public string? rowcount { get; set; }
 
-    public Dictionary<string, object?> ToDictionary()
+    public string? FilePath { get; set; } = string.Empty;
+    public string? Title { get; set; } = string.Empty;
+    public string? Url { get; set; } = string.Empty;
+
+    public Dictionary<string, object?> ToDictionaryForIndexing()
     {
         var result = new Dictionary<string, object?>();
 

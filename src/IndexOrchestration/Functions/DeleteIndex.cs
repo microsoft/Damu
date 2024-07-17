@@ -20,7 +20,7 @@ public class DeleteIndex
         _searchIndexClient = searchIndexClient;
     }
 
-    [Function(nameof(DeleteIndex))]
+    [Function("DeleteIndex")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest request)
     {
         _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");

@@ -63,6 +63,8 @@ public class AzureSearchService(SearchClient searchClient)
             doc.Document.TryGetValue("Title", out var titleValue);
             doc.Document.TryGetValue("FilePath", out var filePathValue);
             doc.Document.TryGetValue("Url", out var urlValue);
+            doc.Document.TryGetValue("PatientName", out var patientNameValue);
+            doc.Document.TryGetValue("MRN", out var mrnValue);
 
             // parse the search results into SupportingContentRecord
             string? contentValue;
@@ -80,10 +82,12 @@ public class AzureSearchService(SearchClient searchClient)
                 filePathValue is string filePath &&
                 urlValue is string url &&
                 chunkOrderValue is int chunkOrder &&
+                patientNameValue is string patientName &&
+                mrnValue is string mrn &&
                 contentValue is string content)
             {
                 content = content.Replace('\r', ' ').Replace('\n', ' ');
-                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString()));
+                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString(), patientName, mrn));
             }
         }
 

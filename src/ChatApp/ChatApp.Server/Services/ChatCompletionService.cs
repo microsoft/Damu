@@ -69,19 +69,19 @@ public class ChatCompletionService
             documentContents = "no source available.";
         }
 
-        var sysmessage = @"
+        var sysmessage = $$$"""
                 ## Source ##
-                {{documentContents}}
+                {{{documentContents}}}
                 ## End ##
                 You are an agent helping a medical researcher find medical notes that fit criteria and supplement with additional data, 
-                using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names and the corresponding MRNs in a table format.
-                If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.
+                using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names, corresponding MRNs, and source reference in a table format.
+                If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.                
                 Sample Answer:
                 (2) notes found:
-                Patient Name	|	MRN	
-                John Johnson 	|	1234567
-                Peter Peterson	| 	7654321
-                ";
+                Patient Name	|	MRN	    |  Citation
+                John Johnson 	|	1234567 |  [reference1.json]
+                Peter Peterson	| 	7654321 |  [reference2.json]
+                """;
         var history = new ChatHistory(sysmessage);
 
         // filter out 'tool' messages

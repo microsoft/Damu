@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace ChatApp.Server.Models;
 
-public record SupportingContentRecord(string Title, string Content, string Url, string Filepath, string ChunkId);
+public record SupportingContentRecord(string Title, string Content, string Url, string Filepath, string ChunkId, string PatientName, string MRN);
 
 public record ToolContentResponse(List<SupportingContentRecord> Citations, List<string> Intent);
 

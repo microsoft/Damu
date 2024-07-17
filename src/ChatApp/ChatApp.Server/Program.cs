@@ -18,7 +18,10 @@ public class Program
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        
+
+        // for FHIR plugin
+        builder.Services.AddHttpClient();
+
         // Register all of our things from ChatAppExtensions
         builder.Services.AddChatAppServices(builder.Configuration);
 

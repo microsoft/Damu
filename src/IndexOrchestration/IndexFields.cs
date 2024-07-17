@@ -12,6 +12,8 @@ internal static class IndexFields
     public const string NoteType = "NoteType";
     public const string NoteStatus = "NoteStatus";
     public const string AuthorId = "AuthorId";
+    public const string PatientFirstName = "PatientFirstName";
+    public const string PatientLastName = "PatientLastName";
     public const string AuthorFirstName = "AuthorFirstName";
     public const string AuthorLastName = "AuthorLastName";
     public const string Department = "Department";

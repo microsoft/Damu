@@ -42,13 +42,6 @@ public class IndexUpserter
         // clean out BOM if present
         var cleanedContent = content.Trim().Replace("\uFEFF", "");
 
-        if (!string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogInformation("Deleting index for non-production environment to ensure consistent index definition during development...");
-
-            await _searchIndexClient.DeleteIndexAsync(_functionSettings.SearchIndexName);
-        }
-
         var jsonReader = new JsonTextReader(new StringReader(cleanedContent))
         {
             SupportMultipleContent = true

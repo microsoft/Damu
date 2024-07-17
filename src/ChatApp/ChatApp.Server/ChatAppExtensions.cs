@@ -49,7 +49,7 @@ internal static class ChatAppExtensions
 
             var storageEndpoint = storageOptions?.BlobStorageEndpoint;
 
-            storageEndpoint = storageEndpoint.Substring(0, storageEndpoint.LastIndexOf('/'));
+            storageEndpoint = storageEndpoint?.Substring(0, storageEndpoint.LastIndexOf('/'));
             var containerUri = new Uri($"{storageEndpoint}/{storageOptions?.BlobStorageContainerName}");
 
             return string.IsNullOrWhiteSpace(storageOptions?.BlobStorageConnectionString)

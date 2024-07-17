@@ -2,6 +2,7 @@
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Storage.Blobs;
+using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;

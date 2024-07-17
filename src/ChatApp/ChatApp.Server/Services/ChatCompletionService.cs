@@ -62,7 +62,7 @@ public class ChatCompletionService
             // parse out the document contents
             var toolContent = JsonSerializer.Deserialize<ToolContentResponse>(
                 messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)).Content);
-            documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}"));
+            documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}:{c.PatientName}:{c.MRN}"));
         }
         else
         {
@@ -77,9 +77,9 @@ public class ChatCompletionService
                 using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names, corresponding MRNs, and source reference in a table format.
                 If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.                
                 Sample Answer:
-                (2) notes found:
-                Patient Name	|	MRN	    |  Citation
-                John Johnson 	|	1234567 |  [reference1.json]
+                (2) notes found:\n
+                Patient Name	|	MRN	    |  Citation \n
+                John Johnson 	|	1234567 |  [reference1.json] \n
                 Peter Peterson	| 	7654321 |  [reference2.json]
                 """;
         var history = new ChatHistory(sysmessage);
@@ -90,6 +90,19 @@ public class ChatCompletionService
             .ForEach(m => history.AddUserMessage(m.Content));
         
         var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings, _kernel);
+        // add assistant response message to history and return chatcompletion
+
+        // append response messages to messages array
+        var responseMessages = messages.ToList();
+        response.Items.ToList().ForEach(item => responseMessages.Add(new Message
+        {
+            Id = Guid.NewGuid().ToString(),
+            Role = AuthorRole.Assistant.ToString().ToLower(),
+            Content = item.ToString()!,
+            Date = DateTime.UtcNow
+
+        }));        
+
         var result = new ChatCompletion
         {
             Id = Guid.NewGuid().ToString(),
@@ -97,23 +110,9 @@ public class ChatCompletionService
             Model = response.ModelId!,
             Created = DateTime.UtcNow,
             Choices = [new() {
-                Messages = response.Items.Select(item => new Message
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant.ToString().ToLower(),
-                    Content = item.ToString()!,
-                    Date = DateTime.UtcNow
-                }).ToList()
+                Messages = [.. responseMessages]
             }]
-        };
-
-        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)))
-        {
-            // add the tool message back in
-            result.Choices[0].Messages = result.Choices[0].Messages.Prepend(            
-                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
-            ).ToList();
-        }
+        };        
 
         return result;
     }

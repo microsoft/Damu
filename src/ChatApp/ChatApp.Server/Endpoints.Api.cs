@@ -34,7 +34,7 @@ public static partial class Endpoints
         [FromBody] ConversationRequest history)
     {
         // do the search here
-        var searchResults = await search.QueryDocumentsAsync(history.Messages[0].Content);
+        var searchResults = await search.QueryDocumentsAsync(history.Messages[^1].Content);
         var toolMsg = new Message
         {
             Id = Guid.NewGuid().ToString(),
@@ -42,10 +42,10 @@ public static partial class Endpoints
             Date = DateTime.UtcNow,
             Content = JsonSerializer.Serialize(searchResults)
         };
+        // add search results to the conversation
         history.Messages.Add(toolMsg);
-        // stuff results into the ChatHistory[]
-        // call completion??
-        // 
+        
+        // return result from LLM
         return Results.Ok(await chat.CompleteChat([.. history.Messages]));
     }
 

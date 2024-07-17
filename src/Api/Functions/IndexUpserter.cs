@@ -37,60 +37,49 @@ public class IndexUpserter
     }
 
     [Function(nameof(IndexUpserter))]
-    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content)
+    public async Task RunAsync([BlobTrigger("notes/{name}", Connection = "IncomingBlobConnStr")] string content, string name)
     {
+        _logger.LogInformation("Processing blob {name}...", name);
+
         // clean out BOM if present
         var cleanedContent = content.Trim().Replace("\uFEFF", "");
 
-        var jsonReader = new JsonTextReader(new StringReader(cleanedContent))
+        var sourceNoteRecord = JsonConvert.DeserializeObject<SourceNoteRecord>(cleanedContent);
+
+        if (sourceNoteRecord == null)
         {
-            SupportMultipleContent = true
-        };
+            _logger.LogError("Failed to deserialize note record from blob {name}.", name);
 
-        var jsonSerializer = new JsonSerializer();
-
-        List<SourceNoteRecord> inputDocuments = [];
-
-        while (jsonReader.Read())
-        {
-            SourceNoteRecord foo = jsonSerializer.Deserialize<SourceNoteRecord>(jsonReader) ?? new();
-            inputDocuments.Add(foo);
+            return;
         }
 
-        _logger.LogInformation("Parsed out {count} note records to analyze for loading.", inputDocuments.Count);
+        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {name}.", sourceNoteRecord.NoteId, name);
 
-        await LoadIndexAsync(inputDocuments);
+        await LoadIndexAsync(sourceNoteRecord);
 
         _logger.LogInformation("Index loading completed.");
     }
 
-    private async Task LoadIndexAsync(List<SourceNoteRecord> inputDocuments)
+    private async Task LoadIndexAsync(SourceNoteRecord document)
     {
         List<SearchDocument> sampleDocuments = [];
 
-        foreach (var document in inputDocuments)
+        var content = !string.IsNullOrWhiteSpace(document.NoteInHtml) ? document.NoteInHtml : string.Empty;
+
+        var tokenCount = GetTokenCount(content);
+
+        if (tokenCount > _functionSettings.MaxChunkSize)
         {
-            List<SearchDocument> newSearchDocs = [];
-
-            var content = !string.IsNullOrWhiteSpace(document.NoteInHtml) ? document.NoteInHtml : string.Empty;
-
-            var tokenCount = GetTokenCount(content);
-
-            if (tokenCount > _functionSettings.MaxChunkSize)
-            {
-                _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", document.NoteId);
-                newSearchDocs = await RecursivelySplitNoteContent(document);
-                _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", document.NoteId, newSearchDocs.Count);
-            }
-            else
-            {
-                _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", document.NoteId);
-                document.NoteChunk = content;
-                document.NoteChunkOrder = 0;
-                newSearchDocs.Add(await ConvertToSearchDocumentAsync(document));
-            }
-
-            sampleDocuments.AddRange(newSearchDocs);
+            _logger.LogDebug("Note {noteId} is too large to index in one chunk. Splitting...", document.NoteId);
+            sampleDocuments = await RecursivelySplitNoteContent(document);
+            _logger.LogDebug("Note {noteId} chunking produced {count} chunks.", document.NoteId, sampleDocuments.Count);
+        }
+        else
+        {
+            _logger.LogDebug("Note {noteId} is small enough to index in one chunk.", document.NoteId);
+            document.NoteChunk = content;
+            document.NoteChunkOrder = 0;
+            sampleDocuments = [await ConvertToSearchDocumentAsync(document)];
         }
 
         Response<IndexDocumentsResult>? indexingResult = null;

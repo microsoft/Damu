@@ -57,11 +57,11 @@ public class ChatCompletionService
     public async Task<ChatCompletion> CompleteChat(Message[] messages)
     {
         string documentContents = string.Empty;
-        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)))
         {
             // parse out the document contents
             var toolContent = JsonSerializer.Deserialize<ToolContentResponse>(
-                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)).Content);
+                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).Content);
             documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}:{c.PatientName}:{c.MRN}"));
         }
         else
@@ -85,7 +85,7 @@ public class ChatCompletionService
         var history = new ChatHistory(sysmessage);
 
         // filter out 'tool' messages
-        messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+        messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase))
             .ToList()
             .ForEach(m => history.AddUserMessage(m.Content));
         

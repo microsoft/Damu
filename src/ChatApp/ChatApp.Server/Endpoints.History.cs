@@ -208,9 +208,9 @@ public static partial class Endpoints
         if (string.IsNullOrWhiteSpace(conversation?.Id))
             return Results.BadRequest("conversation_id is required");
 
-        if (conversation.Messages.Count > 0 && conversation.Messages[^1].Role.Equals(AuthorRole.Assistant.ToString(), StringComparison.InvariantCultureIgnoreCase))
+        if (conversation.Messages.Count > 0 && conversation.Messages[^1].Role.Equals(AuthorRole.Assistant.ToString(), StringComparison.OrdinalIgnoreCase))
         {
-            if (conversation.Messages.Count > 1 && conversation.Messages[^2].Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            if (conversation.Messages.Count > 1 && conversation.Messages[^2].Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase))
             {
                 // write the tool message first                
                 await history.CreateMessageAsync(Guid.NewGuid().ToString(), conversation.Id, user.UserPrincipalId, conversation.Messages[^2]);
@@ -253,7 +253,7 @@ public static partial class Endpoints
 
         // Format the incoming message object in the "chat/completions" messages format
         // then write it to the conversation history in cosmos
-        if (conversation.Messages.Count == 0 || !conversation.Messages[^1].Role.Equals(AuthorRole.User.ToString(), StringComparison.InvariantCultureIgnoreCase)) // move role format to enum?
+        if (conversation.Messages.Count == 0 || !conversation.Messages[^1].Role.Equals(AuthorRole.User.ToString(), StringComparison.OrdinalIgnoreCase)) // move role format to enum?
             return Results.BadRequest("No user messages found");
 
         //var result = await chatCompletionService.AlternativeCompleteChat(conversation)

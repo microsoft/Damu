@@ -36,7 +36,11 @@ internal class SourceNoteRecord
     public string? Gender { get; set; } = string.Empty;
     public DateTimeOffset? BirthDate { get; set; }
 
-    public Dictionary<string, object?> ToDictionary()
+    public string? FilePath { get; set; } = string.Empty;
+    public string? Title { get; set; } = string.Empty;
+    public string? Url { get; set; } = string.Empty;
+
+    public Dictionary<string, object?> ToDictionaryForIndexing()
     {
         var result = new Dictionary<string, object?>();
 

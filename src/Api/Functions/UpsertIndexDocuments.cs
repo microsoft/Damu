@@ -6,6 +6,7 @@ using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Models;
+using Azure.Storage.Blobs.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
@@ -36,9 +37,9 @@ public class UpsertIndexDocuments
     }
 
     [Function(nameof(UpsertIndexDocuments))]
-    public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobName)
+    public async Task RunAsync([BlobTrigger("notes/{blobName}", Connection = "IncomingBlobConnStr")] string blobContent, string blobPath, Uri blobUri)
     {
-        _logger.LogInformation("Processing blob {blobName}...", blobName);
+        _logger.LogInformation("Processing blob {blobName}...", blobPath);
 
         // clean out BOM if present
         var cleanedContent = blobContent.Trim().Replace("\uFEFF", "");
@@ -47,19 +48,23 @@ public class UpsertIndexDocuments
 
         if (sourceNoteRecord == null)
         {
-            _logger.LogError("Failed to deserialize note record from blob {blobName}.", blobName);
+            _logger.LogError("Failed to deserialize note record from blob {blobName}.", blobPath);
 
             return;
         }
 
         if (!sourceNoteRecord.NoteId.HasValue)
         {
-            _logger.LogError("Note record from blob {blobName} has no ID. Skipping indexing.", blobName);
+            _logger.LogError("Note record from blob {blobName} has no ID. Skipping indexing.", blobPath);
 
             return;
         }
 
-        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobName);
+        _logger.LogInformation("Successfully identified note with ID {noteId} in blob {blobName}.", sourceNoteRecord.NoteId, blobPath);
+
+        sourceNoteRecord.FilePath = blobPath;
+        sourceNoteRecord.Title = blobPath.Split('/').LastOrDefault();
+        sourceNoteRecord.Url = blobUri.ToString();
 
         List<SearchDocument> sampleDocuments = [];
 
@@ -214,7 +219,7 @@ public class UpsertIndexDocuments
         // this composite key means that MergeOrUpload will overwrite the previous chunk in any size increase scenarios for source material
         sourceNote.IndexRecordId = $"{sourceNote.NoteId}-{sourceNote.NoteChunkOrder}";
 
-        var dictionary = sourceNote.ToDictionary();
+        var dictionary = sourceNote.ToDictionaryForIndexing();
 
         if (!string.IsNullOrWhiteSpace(sourceNote.NoteChunk))
         {

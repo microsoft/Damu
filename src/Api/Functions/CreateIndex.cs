@@ -101,7 +101,12 @@ public class CreateIndex
                 new SearchableField(IndexFields.AuthorLastName) { IsFilterable = true, IsSortable = true },
                 new SearchableField(IndexFields.Department) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
                 new SearchableField(IndexFields.Gender) { IsFilterable = true, IsSortable = true, IsFacetable = true  },
-                new SearchField(IndexFields.BirthDate, SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true }
+                new SearchField(IndexFields.BirthDate, SearchFieldDataType.DateTimeOffset) { IsFilterable = true, IsSortable = true },
+
+                // for citations
+                new SearchableField(IndexFields.FilePath),
+                new SearchableField(IndexFields.Title),
+                new SearchableField(IndexFields.Url),
             }
         };
 

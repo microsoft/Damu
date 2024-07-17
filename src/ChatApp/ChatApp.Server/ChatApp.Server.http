@@ -1,6 +1,17 @@
-@ChatApp.Server_HostAddress = http://localhost:5278
-
-GET {{ChatApp.Server_HostAddress}}/weatherforecast/
-Accept: application/json
+POST https://localhost:7159/conversation
+Content-Type: application/json
+{
+  "messages": [
+    {
+      "id": "12345",
+      "role": "user",
+      "content": "list any patients being evaluated for hypoxia",
+      "date": "2024-07-15T19:13:12.943Z"
+    }
+  ]
+}
 
 ###
+
+POST https://localhost:7159/search?query="hello%20world"
+Content-Type: application

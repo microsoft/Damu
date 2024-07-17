@@ -1,0 +1,10 @@
+﻿@Api_HostAddress = http://localhost:7026
+
+
+POST {{Api_HostAddress}}/api/DeleteIndex
+
+###
+
+POST {{Api_HostAddress}}/api/CreateIndex
+
+###

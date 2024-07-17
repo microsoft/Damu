@@ -4,6 +4,7 @@ using ChatApp.Server.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using System.Text.Json;
 
 namespace ChatApp.Server.Services;
 
@@ -12,7 +13,7 @@ public class ChatCompletionService
     private readonly Kernel _kernel;
     private readonly PromptExecutionSettings _promptSettings;
 
-    public ChatCompletionService(IConfiguration config)
+    public ChatCompletionService(IConfiguration config, AzureSearchService searchService)
     {
         var defaultAzureCreds = new DefaultAzureCredential();
 
@@ -21,6 +22,7 @@ public class ChatCompletionService
             MaxTokens = 1024,
             Temperature = 0.5,
             StopSequences = [],
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
         };
 
         var builder = Kernel.CreateBuilder();
@@ -35,7 +37,7 @@ public class ChatCompletionService
             builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
             builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
         }
-
+        //builder.Plugins.AddFromObject(searchService, "SearchNotes");
         _kernel = builder.Build();
     }
 
@@ -54,16 +56,40 @@ public class ChatCompletionService
 
     public async Task<ChatCompletion> CompleteChat(Message[] messages)
     {
-        var sysmessage = @"You are a helpful assistant.";
-        var history = new ChatHistory(sysmessage);
-
-        foreach (var message in messages)
+        string documentContents = string.Empty;
+        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)))
         {
-            history.AddUserMessage(message.Content);
+            // parse out the document contents
+            var toolContent = JsonSerializer.Deserialize<ToolContentResponse>(
+                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)).Content);
+            documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}"));
+        }
+        else
+        {
+            documentContents = "no source available.";
         }
 
-        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
+        var sysmessage = $$$"""
+                ## Source ##
+                {{{documentContents}}}
+                ## End ##
+                You are an agent helping a medical researcher find medical notes that fit criteria and supplement with additional data, 
+                using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names, corresponding MRNs, and source reference in a table format.
+                If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.                
+                Sample Answer:
+                (2) notes found:
+                Patient Name	|	MRN	    |  Citation
+                John Johnson 	|	1234567 |  [reference1.json]
+                Peter Peterson	| 	7654321 |  [reference2.json]
+                """;
+        var history = new ChatHistory(sysmessage);
 
+        // filter out 'tool' messages
+        messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            .ToList()
+            .ForEach(m => history.AddUserMessage(m.Content));
+        
+        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings, _kernel);
         var result = new ChatCompletion
         {
             Id = Guid.NewGuid().ToString(),
@@ -74,12 +100,20 @@ public class ChatCompletionService
                 Messages = response.Items.Select(item => new Message
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant.ToString(),
+                    Role = AuthorRole.Assistant.ToString().ToLower(),
                     Content = item.ToString()!,
                     Date = DateTime.UtcNow
                 }).ToList()
             }]
         };
+
+        if (messages.Any(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase)))
+        {
+            // add the tool message back in
+            result.Choices[0].Messages = result.Choices[0].Messages.Prepend(            
+                messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.InvariantCultureIgnoreCase))
+            ).ToList();
+        }
 
         return result;
     }

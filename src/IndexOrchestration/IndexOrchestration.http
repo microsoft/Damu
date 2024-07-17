@@ -1,0 +1,9 @@
+﻿@IndexOrchestration_HostAddress = http://localhost:7026
+
+POST {{IndexOrchestration_HostAddress}}/api/UpsertIndex
+
+###
+
+POST {{IndexOrchestration_HostAddress}}/api/DeleteIndex
+
+###

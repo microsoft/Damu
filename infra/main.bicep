@@ -7,6 +7,7 @@ param environmentName string
 
 @minLength(1)
 @description('Primary location for all resources')
+@allowed(['eastus','westus2'])
 param location string
 
 param appServicePlanName string = ''
@@ -50,7 +51,7 @@ param embeddingModelName string = 'text-embedding-ada-002'
 param storageAccountName string = ''
 
 @description('Name of the storage container. Default: content')
-param storageContainerName string = 'content'
+param storageContainerName string = 'notes'
 
 @description('Location of the resource group for the storage account')
 param storageResourceGroupLocation string = location
@@ -236,25 +237,15 @@ module function './app/function.bicep' = {
     allowedOrigins: [ backend.outputs.uri ]
     useManagedIdentity: true
     appSettings: {
-      AzureOpenAiEmbeddingDeployedModel: ''
-      AzureOpenAiEndpoint: ''
-      AzureWebJobsStorage: ''
-      DocIntelEndPoint: ''
+      AzureOpenAiEmbeddingDeployment: embeddingDeploymentName
+      AzureOpenAiEmbeddingModel: embeddingModelName
+      AzureOpenAiEndpoint: openAi.outputs.endpoint
+      DocIntelEndPoint: formRecognizer.outputs.endpoint
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
       IncomingBlobConnStr: ''
-      ModelDimensions: ''
-      SearchEndpoint: ''
+      ModelDimensions: '3072'
       ProjectPrefix: 'damu'
-      NoteJsonFileName: '' // expects ndjson format,
-      FHIR_SERVER_URL: ''
-      TenantId: ''
-      ClientId: ''
-      ClientSecret: ''
-      Resource: ''
-      // the following are optional - complete them if you want to use key base auth, leave blank for managed identity
-      SearchKey: ''
-      AzureOpenAiKey: ''
-      DocIntelKey: ''
+      SearchEndpoint: searchService.outputs.endpoint
     }
   }
 }

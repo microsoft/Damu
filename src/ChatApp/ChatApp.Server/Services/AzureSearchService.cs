@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ChatApp.Server.Services;
 
-public class AzureSearchService(SearchClient searchClient)
+public class AzureSearchService(SearchClient searchClient, IConfiguration config)
 {   
     public async Task<ToolContentResponse> QueryDocumentsAsync(
         string? query = null,
@@ -20,7 +20,7 @@ public class AzureSearchService(SearchClient searchClient)
             throw new ArgumentException("Either query or embedding must be provided");
         }
 
-        string semanticConfigurationName = "damu-semantic-config";
+        string semanticConfigurationName = config["AZURE_SEARCH_SEMANTIC_CONFIGURATION_NAME"] ?? "damu-semantic-config";
         bool useSemanticCaptions = false;
 
         var options = new SearchOptions

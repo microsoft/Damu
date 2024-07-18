@@ -20,10 +20,15 @@ internal static class ChatAppExtensions
         services.AddSingleton(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            var searchClient = new SearchClient(
-                new Uri(config["AZURE_SEARCH_ENDPOINT"] ?? "https://search"),
-                config["AZURE_SEARCH_INDEX"],
-                defaultAzureCreds);
+            var searchClient = string.IsNullOrEmpty(config["AZURE_SEARCH_KEY"]) ?
+                new SearchClient(
+                    new Uri(config["AZURE_SEARCH_ENDPOINT"] ?? "https://search"),
+                    config["AZURE_SEARCH_INDEX"],
+                    defaultAzureCreds) :
+                new SearchClient(
+                    new Uri(config["AZURE_SEARCH_ENDPOINT"] ?? "https://search"),
+                    config["AZURE_SEARCH_INDEX"],
+                    new AzureKeyCredential(config["AZURE_SEARCH_KEY"]!));
 
             return new AzureSearchService(searchClient);
         });

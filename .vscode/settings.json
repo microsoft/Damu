@@ -1,0 +1,6 @@
+{
+    "azureFunctions.deploySubpath": "src/IndexOrchestration",
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen"
+}

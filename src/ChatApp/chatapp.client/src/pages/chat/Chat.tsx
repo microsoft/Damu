@@ -123,7 +123,7 @@ const Chat = () => {
 
   let assistantMessage = {} as ChatMessage
   let toolMessage = {} as ChatMessage
-  let assistantContent = ''
+  //let assistantContent = ''
 
   const processResultMessage = (resultMessage: ChatMessage, userMessage: ChatMessage, conversationId?: string) => {
     if (resultMessage.content.includes('all_exec_results')) {
@@ -132,9 +132,9 @@ const Chat = () => {
     }
 
     if (resultMessage.role === ASSISTANT) {
-      assistantContent += resultMessage.content
+      //assistantContent += resultMessage.content // possible bug here
       assistantMessage = resultMessage
-      assistantMessage.content = assistantContent
+      //assistantMessage.content = assistantContent
 
       if (resultMessage.context) {
         toolMessage = {

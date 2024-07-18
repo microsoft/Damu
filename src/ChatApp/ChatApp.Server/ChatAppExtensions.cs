@@ -13,7 +13,8 @@ internal static class ChatAppExtensions
 {
     internal static void AddChatAppServices(this IServiceCollection services, IConfiguration config)
     {
-        var defaultAzureCreds = new DefaultAzureCredential();
+        var defaultAzureCreds = string.IsNullOrEmpty(config["AZURE_TENANT_ID"]) ? new DefaultAzureCredential() :
+            new DefaultAzureCredential(new DefaultAzureCredentialOptions { TenantId = config["AZURE_TENANT_ID"] });
         
         services.AddSingleton<ChatCompletionService>();
 

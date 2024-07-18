@@ -16,7 +16,7 @@ public class ChatCompletionService
     private readonly OpenAIPromptExecutionSettings _promptSettings;
     private readonly string _promptDirectory;
 
-    public ChatCompletionService(IOptions<OpenAIOptions> options, AzureSearchService searchService)
+    public ChatCompletionService(IOptions<OpenAIOptions> options, IOptions<AzureAdOptions> adOptions, AzureSearchService searchService)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.Endpoint);
         ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.ChatDeployment);
@@ -34,15 +34,23 @@ public class ChatCompletionService
 
         if (string.IsNullOrEmpty(options.Value.ApiKey)) // use managed identity
         {
+            var defaultAzureCreds = string.IsNullOrWhiteSpace(adOptions?.Value?.TenantId)
+                ? new DefaultAzureCredential()
+                : new DefaultAzureCredential(
+                    new DefaultAzureCredentialOptions
+                    {
+                        TenantId = adOptions.Value.TenantId
+                    });
+
             builder = builder.AddAzureOpenAITextEmbeddingGeneration(
             options.Value.EmbeddingDeployment,
             options.Value.Endpoint,
-            new DefaultAzureCredential());
+            defaultAzureCreds);
 
             builder = builder.AddAzureOpenAIChatCompletion(
             options.Value.ChatDeployment,
             options.Value.Endpoint,
-            new DefaultAzureCredential());
+            defaultAzureCreds);
         }
         else // use api key
         {

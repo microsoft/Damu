@@ -2,6 +2,7 @@
 using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text.Json;
 
@@ -11,7 +12,7 @@ public static partial class Endpoints
 {
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        app.MapGet("/frontend_settings", (HttpContext httpContext) => Results.Json(new FrontendSettings()))
+        app.MapGet("/frontend_settings", (HttpContext httpContext, [FromServices] IOptions<FrontendSettings> options) => options.Value)
             .WithName("GetFrontendSettings")
             .WithOpenApi();
 

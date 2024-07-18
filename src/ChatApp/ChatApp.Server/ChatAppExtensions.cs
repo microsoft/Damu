@@ -11,6 +11,18 @@ namespace ChatApp.Server;
 
 internal static class ChatAppExtensions
 {
+    internal static void AddOptions(this IServiceCollection services, IConfiguration config)
+    {
+        services.Configure<AzureAdOptions>(config.GetSection(nameof(AzureAdOptions)));
+        services.Configure<AISearchOptions>(config.GetSection(nameof(AISearchOptions)));
+        services.Configure<OpenAIOptions>(config.GetSection(nameof(OpenAIOptions)));
+        services.Configure<CosmosOptions>(config.GetSection(nameof(CosmosOptions)));
+        services.Configure<StorageOptions>(config.GetSection(nameof(StorageOptions)));
+        services.Configure<FhirOptions>(config.GetSection(nameof(FhirOptions)));
+
+        services.Configure<FrontendSettings>(config.GetSection(nameof(FrontendSettings)));
+    }
+
     internal static void AddChatAppServices(this IServiceCollection services, IConfiguration config)
     {
         var defaultAzureCreds = new DefaultAzureCredential();
@@ -19,50 +31,89 @@ internal static class ChatAppExtensions
 
         services.AddSingleton(services =>
         {
-            var options = services.GetRequiredService<IOptions<AISearchOptions>>().Value;
+            var options = services.GetRequiredService<IOptions<AISearchOptions>>().Value ?? throw new Exception($"{nameof(AISearchOptions)} is rquired in settings.");
 
-            return string.IsNullOrEmpty(options.ApiKey) ?
-                new SearchClient(
-                    new Uri(options.Endpoint),
-                    options.IndexName,
-                    new DefaultAzureCredential()) :
-                new SearchClient(
+            if (string.IsNullOrWhiteSpace(options?.ApiKey))
+            {
+                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
+
+                var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
+                ? new DefaultAzureCredential()
+                    : new DefaultAzureCredential(
+                        new DefaultAzureCredentialOptions
+                        {
+                            TenantId = adOptions.TenantId
+                        });
+
+                return new SearchClient(
+                        new Uri(options!.Endpoint),
+                        options.IndexName,
+                        defaultCreds);
+            }
+
+            return new SearchClient(
                     new Uri(options.Endpoint),
                     options.IndexName,
                     new AzureKeyCredential(options.ApiKey));
         });
 
-        services.AddTransient<AzureSearchService>();
+        services.AddSingleton<AzureSearchService>();
 
         var isChatEnabled = bool.TryParse(config["ENABLE_CHAT_HISTORY"], out var result) && result;
 
         if (isChatEnabled)
         {
-            services.AddTransient(services =>
+            services.AddSingleton(services =>
             {
-                var options = services.GetRequiredService<IOptions<CosmosOptions>>().Value;
+                var options = services.GetRequiredService<IOptions<CosmosOptions>>().Value ?? throw new Exception($"{nameof(CosmosOptions)} is rquired in settings.");
 
-                return string.IsNullOrWhiteSpace(options.CosmosKey)
-                ? new CosmosClient(options.CosmosEndpoint, new DefaultAzureCredential())
-                : new CosmosClient(options.CosmosEndpoint, new AzureKeyCredential(options.CosmosKey));
+                if (string.IsNullOrEmpty(options?.CosmosKey))
+                {
+                    var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
+
+                    var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
+                    ? new DefaultAzureCredential()
+                        : new DefaultAzureCredential(
+                            new DefaultAzureCredentialOptions
+                            {
+                                TenantId = adOptions.TenantId
+                            });
+                    return new CosmosClient(options!.CosmosEndpoint, defaultCreds);
+                }
+
+                return new CosmosClient(options.CosmosEndpoint, new AzureKeyCredential(options.CosmosKey));
             });
-            services.AddTransient<CosmosConversationService>();
+
+            services.AddSingleton<CosmosConversationService>();
         }
 
-        services.AddTransient(sp =>
+        services.AddSingleton(services =>
         {
-            var storageOptions = config.GetSection(nameof(StorageOptions)).Get<StorageOptions>();
+            var options = config.GetSection(nameof(StorageOptions)).Get<StorageOptions>() ?? throw new Exception($"{nameof(StorageOptions)} is rquired in settings."); ;
 
-            var storageEndpoint = storageOptions?.BlobStorageEndpoint;
+            var storageEndpoint = options?.BlobStorageEndpoint;
 
             storageEndpoint = storageEndpoint?.Substring(0, storageEndpoint.LastIndexOf('/'));
-            var containerUri = new Uri($"{storageEndpoint}/{storageOptions?.BlobStorageContainerName}");
+            var containerUri = new Uri($"{storageEndpoint}/{options?.BlobStorageContainerName}");
 
-            return string.IsNullOrWhiteSpace(storageOptions?.BlobStorageConnectionString)
-                ? new BlobContainerClient(containerUri, new DefaultAzureCredential())
-                : new BlobContainerClient(storageOptions?.BlobStorageConnectionString, storageOptions?.BlobStorageContainerName);
+            if (string.IsNullOrEmpty(options?.BlobStorageConnectionString))
+            {
+                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
+
+                var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
+                ? new DefaultAzureCredential()
+                    : new DefaultAzureCredential(
+                        new DefaultAzureCredentialOptions
+                        {
+                            TenantId = adOptions.TenantId
+                        });
+
+                return new BlobContainerClient(containerUri, defaultCreds);
+            }
+
+            return new BlobContainerClient(options?.BlobStorageConnectionString, options?.BlobStorageContainerName);
         });
 
-        services.AddTransient<NoteService>();
+        services.AddSingleton<NoteService>();
     }
 }

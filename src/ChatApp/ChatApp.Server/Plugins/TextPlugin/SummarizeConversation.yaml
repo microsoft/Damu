@@ -1,0 +1,19 @@
+name: SummarizeConversation
+template: |
+        {{$history}}
+        ---
+        Summarize this text. One to three words maximum length. 
+        Plain text only. No punctuation, markup or tags.
+template_format: semantic-kernel
+description: A function generates a short summary name for the chat session.
+input_variables:
+  - name: history
+    description: The conversation history from chat.
+    is_required: true
+output_variable:
+  description: a short summary.
+execution_settings:
+  default:
+    temperature: 0.2
+    max_tokens: 1000
+    top_p: 0.7

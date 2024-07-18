@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.41.0" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.15.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.15.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.16.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>

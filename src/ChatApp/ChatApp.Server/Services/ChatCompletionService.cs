@@ -69,7 +69,7 @@ public class ChatCompletionService
             // parse out the document contents
             var toolContent = JsonSerializer.Deserialize<ToolContentResponse>(
                 messages.First(m => m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).Content, options);
-            documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}:{c.PatientName}:{c.MRN}"));
+            documentContents = string.Join("\r", toolContent.Citations.Select(c => $"{c.Title}:{c.Content}:{c.AdditionalContent}"));
         }
         else
         {

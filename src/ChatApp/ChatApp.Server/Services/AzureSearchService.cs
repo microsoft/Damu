@@ -1,16 +1,28 @@
-﻿using System.ComponentModel;
-using Azure.Core;
-using Azure.Search.Documents;
+﻿using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using ChatApp.Server.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.SemanticKernel;
-using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace ChatApp.Server.Services;
 
 public class AzureSearchService(SearchClient searchClient, IConfiguration config)
-{   
+{
+    private string[] _indexContentFields = [
+        "CSN",
+        "NoteType",
+        "NoteStatus",
+        "AuthorId",
+        "AuthorFirstName",
+        "AuthorLastName",
+        "Department",
+        "Gender",
+        "BirthDate",
+        "NoteId",
+        "PatientFirstName",
+        "PatientLastName",
+        "MRN"
+        ];
+
     public async Task<ToolContentResponse> QueryDocumentsAsync(
         string? query = null,
         float[]? embedding = null)
@@ -63,9 +75,6 @@ public class AzureSearchService(SearchClient searchClient, IConfiguration config
             doc.Document.TryGetValue("Title", out var titleValue);
             doc.Document.TryGetValue("FilePath", out var filePathValue);
             doc.Document.TryGetValue("Url", out var urlValue);
-            doc.Document.TryGetValue("PatientFirstName", out var patientFirstNameValue);
-            doc.Document.TryGetValue("PatientLastName", out var patientLastNameValue);
-            doc.Document.TryGetValue("MRN", out var mrnValue);
 
             // parse the search results into SupportingContentRecord
             string? contentValue;
@@ -79,17 +88,17 @@ public class AzureSearchService(SearchClient searchClient, IConfiguration config
                 contentValue = null;
             }
 
+            // put all other sortable and retrievable fields into 'additionalcontent'
+            var indexProps = doc.Document.ToDictionary().Where(d => _indexContentFields.Contains(d.Key)).ToDictionary();
+
             if (titleValue is string title && 
                 filePathValue is string filePath &&
                 urlValue is string url &&
                 chunkOrderValue is int chunkOrder &&
-                patientFirstNameValue is string patientFirstName &&
-                patientLastNameValue is string patientLastName &&
-                mrnValue is int mrn &&
                 contentValue is string content)
             {
                 content = content.Replace('\r', ' ').Replace('\n', ' ');
-                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString(), $"{patientFirstName} {patientLastNameValue}", mrn.ToString()));
+                sb.Add(new SupportingContentRecord(title, content, url, filePath, chunkOrder.ToString(), JsonSerializer.Serialize(indexProps)));
             }
         }
 

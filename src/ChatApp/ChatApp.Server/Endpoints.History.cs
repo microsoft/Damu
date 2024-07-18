@@ -243,7 +243,8 @@ public static partial class Endpoints
         if (conversation == null)
             return Results.BadRequest();
 
-        if (string.IsNullOrWhiteSpace(conversation.Id))
+        // if title is empty that means it is a new conversation
+        if (string.IsNullOrWhiteSpace(conversation.Title))
         {
             var title = await chatCompletionService.GenerateTitleAsync(conversation.Messages);
 

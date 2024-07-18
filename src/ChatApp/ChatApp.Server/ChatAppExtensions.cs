@@ -11,6 +11,7 @@ namespace ChatApp.Server;
 
 internal static class ChatAppExtensions
 {
+    // this should happen before AddChatServices...
     internal static void AddOptions(this IServiceCollection services, IConfiguration config)
     {
         services.Configure<AzureAdOptions>(config.GetSection(nameof(AzureAdOptions)));
@@ -20,6 +21,7 @@ internal static class ChatAppExtensions
         services.Configure<StorageOptions>(config.GetSection(nameof(StorageOptions)));
         services.Configure<FhirOptions>(config.GetSection(nameof(FhirOptions)));
 
+        // FrontendSettings class needs work on json serialization before this is useful...
         services.Configure<FrontendSettings>(config.GetSection(nameof(FrontendSettings)));
     }
 

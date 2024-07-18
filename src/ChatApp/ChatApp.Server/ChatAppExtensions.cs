@@ -30,7 +30,7 @@ internal static class ChatAppExtensions
                     config["AZURE_SEARCH_INDEX"],
                     new AzureKeyCredential(config["AZURE_SEARCH_KEY"]!));
 
-            return new AzureSearchService(searchClient);
+            return new AzureSearchService(searchClient, config);
         });
 
         var isChatEnabled = bool.TryParse(config["ENABLE_CHAT_HISTORY"], out var result) && result;

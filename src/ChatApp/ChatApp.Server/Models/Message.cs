@@ -14,9 +14,18 @@ public class Message
     {
         // todo: is there anything else we can do here, maybe with date?
         // or author? https://learn.microsoft.com/en-us/dotnet/api/microsoft.semantickernel.chatmessagecontent?view=semantic-kernel-dotnet
+        var role = Role.ToLower() switch
+        {
+            "user" => AuthorRole.User,
+            "assistant" => AuthorRole.Assistant,
+            "tool" => AuthorRole.Tool,
+            "system" => AuthorRole.System,
+            _ => throw new ArgumentException("Invalid role", nameof(Role))
+        };
+
         return new ChatMessageContent
         {
-            Role = Enum.Parse<AuthorRole>(Role),
+            Role = role,
             Content = Content,
         };
     }

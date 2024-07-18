@@ -77,20 +77,18 @@ public class ChatCompletionService
         }
 
         var sysmessage = $$$"""
-                ## Notes ##
+                ## Source ##
                 {{{documentContents}}}
-                ## End Notes ##
-                You are an agent helping to analyze the provided medical notes about patient interactions, and supplement with additional data using plugin functions available to you. 
-                Respond with a count of notes used to the question and the list of note data in a table formatted like the sample answer.
-                Include data in the table asked for by the user, only if you can explicitly find it in the note or data retrieved using plugin functions available. 
-                If you do not have data available to meet the user's request, include only what you have, with "not found" listed for missing data. Never make up data.
-                If the data set is large, display max 10 indicating it is just a sample. 
-                Include source citations, which must be in the format [doc1], [doc2], etc.
+                ## End ##
+                You are an agent helping a medical researcher find medical notes that fit criteria and supplement with additional data, 
+                using the sources available to you. Your response should return a count of notes found and a sample list (maximum 10) of patient's names, corresponding MRNs, and source reference in a table format.
+                If the plugins do not return data based on the question using the provided plugins, respond that you found no information. Do not use general knowledge to respond.                
+                Source references must be in the format [doc1], [doc2], etc.
                 Sample Answer:
                 (2) notes found:\n
-                Patient Name	|	MRN	    | Citation |\n
-                John Johnson 	|	1234567 | [doc1]   |\n
-                Peter Peterson	| 	7654321 | [doc2]   |
+                Patient Name	|	MRN	    |  Citation \n
+                John Johnson 	|	1234567 |  [doc1] \n
+                Peter Peterson	| 	7654321 |  [doc2]
                 """;
         var history = new ChatHistory(sysmessage);
 

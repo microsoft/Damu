@@ -12,6 +12,7 @@ public class ChatCompletionService
 {
     private readonly Kernel _kernel;
     private readonly PromptExecutionSettings _promptSettings;
+    private readonly string _promptDirectory;
 
     public ChatCompletionService(IConfiguration config, AzureSearchService searchService)
     {
@@ -37,6 +38,11 @@ public class ChatCompletionService
             builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
             builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
         }
+
+        _promptDirectory = Path.Combine(Directory.GetCurrentDirectory(),"Plugins");
+
+        builder.Plugins.AddFromPromptDirectory(_promptDirectory);
+
         //builder.Plugins.AddFromObject(searchService, "SearchNotes");
         _kernel = builder.Build();
     }
@@ -90,20 +96,20 @@ public class ChatCompletionService
         messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase))
             .ToList()
             .ForEach(m => history.AddUserMessage(m.Content));
-        
+
         var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings, _kernel);
         // add assistant response message to history and return chatcompletion
 
         // append response messages to messages array
         var responseMessages = messages.ToList();
+
         response.Items.ToList().ForEach(item => responseMessages.Add(new Message
         {
             Id = Guid.NewGuid().ToString(),
             Role = AuthorRole.Assistant.ToString().ToLower(),
             Content = item.ToString()!,
             Date = DateTime.UtcNow
-
-        }));        
+        }));
 
         var result = new ChatCompletion
         {
@@ -114,34 +120,6 @@ public class ChatCompletionService
             Choices = [new() {
                 Messages = [.. responseMessages]
             }]
-        };        
-
-        return result;
-    }
-
-
-
-    public async Task<ChatCompletion> AlternativeCompleteChat(IEnumerable<Message> messages)
-    {
-        var history = new ChatHistory(messages.Select(m => m.ToChatMessageContent()).ToList());
-
-        var response = await _kernel.GetRequiredService<IChatCompletionService>().GetChatMessageContentAsync(history, _promptSettings);
-
-        var result = new ChatCompletion
-        {
-            Id = Guid.NewGuid().ToString(),
-            ApimRequestId = Guid.NewGuid().ToString(),
-            Model = response.ModelId!,
-            Created = DateTime.UtcNow,
-            Choices = [new() {
-                Messages = response.Items.Select(item => new Message
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Role = AuthorRole.Assistant.ToString(),
-                    Content = item.ToString()!,
-                    Date = DateTime.UtcNow
-                }).ToList()
-            }]
         };
 
         return result;
@@ -149,12 +127,19 @@ public class ChatCompletionService
 
     public async Task<string> GenerateTitleAsync(List<Message> messages)
     {
-        Console.WriteLine(messages);
-        // "Summarize the conversation so far into a 4-word or less title. Do not use any quotation marks or punctuation. Do not include any other commentary or description."
-        
-        // is there an OOB summary plugin or do we right our own against a history...?
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        // Create a conversation string from the messages
+        string conversationText = string.Join(" ", messages.Select(m => m.Role + " " + m.Content));
+
+        // Load prompt yaml
+        var promptYaml = File.ReadAllText(Path.Combine(_promptDirectory, "TextPlugin", "SummarizeConversation.yaml"));
+        var function = _kernel.CreateFunctionFromPromptYaml(promptYaml);
+
+        // Invoke the function against the conversation text
+        var result = await _kernel.InvokeAsync(function, new() { { "history", conversationText } });
+
+        string completion = result.ToString()!;
+
+        return completion;
     }
 }
 

@@ -13,26 +13,26 @@ internal static class ChatAppExtensions
 {
     internal static void AddChatAppServices(this IServiceCollection services, IConfiguration config)
     {
-        var defaultAzureCreds = string.IsNullOrEmpty(config["AZURE_TENANT_ID"]) ? new DefaultAzureCredential() :
-            new DefaultAzureCredential(new DefaultAzureCredentialOptions { TenantId = config["AZURE_TENANT_ID"] });
-        
+        var defaultAzureCreds = new DefaultAzureCredential();
+
         services.AddSingleton<ChatCompletionService>();
 
-        services.AddSingleton(sp =>
+        services.AddSingleton(services =>
         {
-            var config = sp.GetRequiredService<IConfiguration>();
-            var searchClient = string.IsNullOrEmpty(config["AZURE_SEARCH_KEY"]) ?
-                new SearchClient(
-                    new Uri(config["AZURE_SEARCH_ENDPOINT"] ?? "https://search"),
-                    config["AZURE_SEARCH_INDEX"],
-                    defaultAzureCreds) :
-                new SearchClient(
-                    new Uri(config["AZURE_SEARCH_ENDPOINT"] ?? "https://search"),
-                    config["AZURE_SEARCH_INDEX"],
-                    new AzureKeyCredential(config["AZURE_SEARCH_KEY"]!));
+            var options = services.GetRequiredService<IOptions<AISearchOptions>>().Value;
 
-            return new AzureSearchService(searchClient, config);
+            return string.IsNullOrEmpty(options.ApiKey) ?
+                new SearchClient(
+                    new Uri(options.Endpoint),
+                    options.IndexName,
+                    new DefaultAzureCredential()) :
+                new SearchClient(
+                    new Uri(options.Endpoint),
+                    options.IndexName,
+                    new AzureKeyCredential(options.ApiKey));
         });
+
+        services.AddTransient<AzureSearchService>();
 
         var isChatEnabled = bool.TryParse(config["ENABLE_CHAT_HISTORY"], out var result) && result;
 

@@ -8,6 +8,8 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.Configure<AISearchOptions>(builder.Configuration.GetSection(nameof(AISearchOptions)));
+        builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection(nameof(OpenAIOptions)));
         builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(nameof(CosmosOptions)));
         builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(nameof(StorageOptions)));
         builder.Services.Configure<FhirOptions>(builder.Configuration.GetSection(nameof(FhirOptions)));

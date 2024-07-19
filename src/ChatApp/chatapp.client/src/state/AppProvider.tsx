@@ -19,6 +19,7 @@ export interface AppState {
   isChatHistoryOpen: boolean
   chatHistoryLoadingState: ChatHistoryLoadingState
   isCosmosDBAvailable: CosmosDBHealth
+  isHistoryEnabled: boolean
   chatHistory: Conversation[] | null
   filteredChatHistory: Conversation[] | null
   currentChat: Conversation | null
@@ -39,6 +40,7 @@ export type Action =
   | { type: 'DELETE_CURRENT_CHAT_MESSAGES'; payload: string }
   | { type: 'FETCH_CHAT_HISTORY'; payload: Conversation[] | null }
   | { type: 'FETCH_FRONTEND_SETTINGS'; payload: FrontendSettings | null }
+  | { type: 'SET_HISTORY_ENABLED'; payload: boolean }
   | {
       type: 'SET_FEEDBACK_STATE'
       payload: { answerId: string; feedback: Feedback.Positive | Feedback.Negative | Feedback.Neutral }
@@ -55,6 +57,7 @@ const initialState: AppState = {
     cosmosDB: false,
     status: CosmosDBStatus.NotConfigured
   },
+  isHistoryEnabled: false,
   frontendSettings: null,
   feedbackState: {}
 }
@@ -98,7 +101,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
 
     const getHistoryEnsure = async () => {
       dispatch({ type: 'UPDATE_CHAT_HISTORY_LOADING_STATE', payload: ChatHistoryLoadingState.Loading })
-        if (!state.frontendSettings!.history_enabled) {
+        if (state.frontendSettings == null || state.frontendSettings!.history_enabled == false) {
             // if frontendSettings.history_enabled is false then set cosmosDB status to NotConfigured
             dispatch({ type: 'UPDATE_CHAT_HISTORY_LOADING_STATE', payload: ChatHistoryLoadingState.Fail })
             dispatch({ type: 'SET_COSMOSDB_STATUS', payload: { cosmosDB: false, status: CosmosDBStatus.NotConfigured } })
@@ -138,14 +141,17 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
                 })
         }
       }
+      
       getHistoryEnsure()
-  }, [state.frontendSettings])
+  }, [state.isHistoryEnabled])
 
   useEffect(() => {
     const getFrontendSettings = async () => {
       frontendSettings()
-        .then(response => {
-          dispatch({ type: 'FETCH_FRONTEND_SETTINGS', payload: response as FrontendSettings })
+          .then(response => {
+            let settings = response as FrontendSettings
+              dispatch({ type: 'FETCH_FRONTEND_SETTINGS', payload: settings })
+              dispatch({ type: 'SET_HISTORY_ENABLED', payload: settings!.history_enabled! })
         })
         .catch(_err => {
           console.error('There was an issue fetching your data.')

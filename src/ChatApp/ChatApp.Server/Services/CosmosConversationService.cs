@@ -246,7 +246,7 @@ internal class CosmosConversationService
 
         var resp = await _container.UpsertItemAsync(historyMessage);
 
-        if (resp.StatusCode != System.Net.HttpStatusCode.OK || resp.StatusCode != System.Net.HttpStatusCode.Created)
+        if (resp == null)
             throw new Exception("Failed to create message.");
 
         var parentConversation = await GetConversationAsync(userId, conversationId);

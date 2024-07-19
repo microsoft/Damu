@@ -41,7 +41,7 @@ public class AzureSearchService(SearchClient searchClient, IOptions<AISearchOpti
                "*"
             },
             IncludeTotalCount = true,
-            QueryType = SearchQueryType.Full,
+            QueryType = SearchQueryType.Semantic,
             SemanticSearch = new SemanticSearchOptions
             {
                 SemanticConfigurationName = options?.Value.SemanticConfigurationName,

@@ -1,0 +1,39 @@
+{
+    "id": "chatcmpl-9mKlgpAE35tfExZlWUrD3Yic8hxWD",
+    "model": "gpt-4o-2024-05-13",
+    "created": 1721306604,
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": "Yes"
+                }
+            ]
+        }
+    ],
+    "history_metadata": {
+        "conversation_id": "167cb3fe-430a-4f38-970b-e73b8ca31798"
+    },
+    "apim-request-id": "35530a6b-90c7-423a-8935-1d174a88a3f5"
+}{
+    "id": "chatcmpl-9mKlgpAE35tfExZlWUrD3Yic8hxWD",
+    "model": "gpt-4o-2024-05-13",
+    "created": 1721306604,
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "messages": [
+                {
+                    "role": "assistant",
+                    "content": ","
+                }
+            ]
+        }
+    ],
+    "history_metadata": {
+        "conversation_id": "167cb3fe-430a-4f38-970b-e73b8ca31798"
+    },
+    "apim-request-id": "35530a6b-90c7-423a-8935-1d174a88a3f5"
+}

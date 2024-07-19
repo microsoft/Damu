@@ -5,6 +5,7 @@ using Azure.Storage.Blobs;
 using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Options;
 
 namespace ChatApp.Server;
@@ -41,20 +42,12 @@ internal static class ChatAppExtensions
 
             if (string.IsNullOrWhiteSpace(options?.ApiKey))
             {
-                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
-
-                var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
-                ? new DefaultAzureCredential()
-                    : new DefaultAzureCredential(
-                        new DefaultAzureCredentialOptions
-                        {
-                            TenantId = adOptions.TenantId
-                        });
+                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;                
 
                 return new SearchClient(
                         new Uri(options!.Endpoint),
                         options.IndexName,
-                        defaultCreds);
+                        defaultAzureCreds);
             }
 
             return new SearchClient(
@@ -73,21 +66,13 @@ internal static class ChatAppExtensions
             {
                 var options = services.GetRequiredService<IOptions<CosmosOptions>>().Value ?? throw new Exception($"{nameof(CosmosOptions)} is rquired in settings.");
 
-                if (string.IsNullOrEmpty(options?.CosmosKey))
-                {
-                    var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
-
-                    var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
-                    ? new DefaultAzureCredential()
-                        : new DefaultAzureCredential(
-                            new DefaultAzureCredentialOptions
-                            {
-                                TenantId = adOptions.TenantId
-                            });
-                    return new CosmosClient(options!.CosmosEndpoint, defaultCreds);
-                }
-
-                return new CosmosClient(options.CosmosEndpoint, new AzureKeyCredential(options.CosmosKey));
+                return string.IsNullOrEmpty(options?.CosmosKey)
+                    ? new CosmosClientBuilder(options!.CosmosEndpoint, defaultAzureCreds)
+                        .WithSerializerOptions(new CosmosSerializationOptions { PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase })
+                        .Build()
+                    : new CosmosClientBuilder(options.CosmosEndpoint, new AzureKeyCredential(options.CosmosKey))
+                        .WithSerializerOptions(new CosmosSerializationOptions { PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase })
+                        .Build();
             });
 
             services.AddSingleton<CosmosConversationService>();
@@ -104,17 +89,9 @@ internal static class ChatAppExtensions
 
             if (string.IsNullOrEmpty(options?.BlobStorageConnectionString))
             {
-                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;
+                var adOptions = services.GetRequiredService<IOptions<AzureAdOptions>>().Value;                
 
-                var defaultCreds = string.IsNullOrWhiteSpace(adOptions?.TenantId)
-                ? new DefaultAzureCredential()
-                    : new DefaultAzureCredential(
-                        new DefaultAzureCredentialOptions
-                        {
-                            TenantId = adOptions.TenantId
-                        });
-
-                return new BlobContainerClient(containerUri, defaultCreds);
+                return new BlobContainerClient(containerUri, defaultAzureCreds);
             }
 
             return new BlobContainerClient(options?.BlobStorageConnectionString, options?.BlobStorageContainerName);

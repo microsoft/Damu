@@ -840,7 +840,7 @@ const Chat = () => {
                 </Stack>
               )}
               <Stack>
-                {appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && (
+                {appStateContext?.state.isHistoryEnabled && (
                   <CommandBarButton
                     role="button"
                     styles={{
@@ -885,13 +885,13 @@ const Chat = () => {
                     }
                   }}
                   className={
-                    appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured
+                    appStateContext?.state.isHistoryEnabled
                       ? styles.clearChatBroom
                       : styles.clearChatBroomNoCosmos
                   }
                   iconProps={{ iconName: 'Broom' }}
                   onClick={
-                    appStateContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured
+                    appStateContext?.state.isHistoryEnabled
                       ? clearChat
                       : newChat
                   }
@@ -909,7 +909,7 @@ const Chat = () => {
                 placeholder="Type a new question..."
                 disabled={isLoading}
                 onSend={(question, id) => {
-                  appStateContext?.state.isCosmosDBAvailable?.cosmosDB
+                  appStateContext?.state.isHistoryEnabled
                     ? makeApiRequestWithCosmosDB(question, id)
                     : makeApiRequestWithoutCosmosDB(question, id)
                 }}

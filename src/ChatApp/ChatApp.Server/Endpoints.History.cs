@@ -3,6 +3,7 @@ using ChatApp.Server.Models;
 using ChatApp.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System;
 using System.Text.Json;
 
 namespace ChatApp.Server;
@@ -26,11 +27,77 @@ public static partial class Endpoints
         app.MapPost("/history/generate", GenerateHistoryAsync);
 
         return app;
-    }    
+    }
+
+    private static async Task<IResult> GenerateHistoryAsync(
+        HttpContext context,
+        [FromBody] ConversationRequest conversation,
+        [FromServices] CosmosConversationService history,
+        [FromServices] ChatCompletionService chat,
+        [FromServices] AzureSearchService search)
+    {
+        var user = GetUser(context);
+        string conversationId = conversation.Id;
+
+        if (user == null)
+            return Results.Unauthorized();
+
+        if (conversation == null)
+            return Results.BadRequest();
+
+        // --- See if this is an existing conversation, otherwise create a new one ---
+        var historyMetadata = new Dictionary<string, string>();
+        // if conversationId is empty that means it is a new conversation
+        if (string.IsNullOrWhiteSpace(conversationId))
+        {
+            var title = await chat.GenerateTitleAsync(conversation.Messages);
+
+            // should we persist user message here too?
+            var result = await history.CreateConversationAsync(user.UserPrincipalId, title);
+            conversationId = result.Id;
+
+            historyMetadata.Add("title", result.Title);
+            historyMetadata.Add("date", result.CreatedAt.ToString());
+        }
+        historyMetadata.Add("conversation_id", conversationId);
+
+        // Format the incoming message object in the "chat/completions" messages format
+        // then write it to the conversation history in cosmos
+        var userMessage = conversation.Messages.LastOrDefault(m => m.Role.Equals(AuthorRole.User.ToString(), StringComparison.OrdinalIgnoreCase));
+        if (userMessage == null)
+            return Results.BadRequest("No user messages found");
+
+        _ = await history.CreateMessageAsync(userMessage.Id, conversationId, user.UserPrincipalId, userMessage);
+
+        // --- Do the RAG search ---
+        // filter out any existing tool messages (search results)
+        conversation.Messages = conversation.Messages.Where(m => !m.Role.Equals(AuthorRole.Tool.ToString(), StringComparison.OrdinalIgnoreCase)).ToList();
+        // do the search here
+        var searchResults = await search.QueryDocumentsAsync(userMessage.Content);
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var toolMsg = new Message
+        {
+            Id = Guid.NewGuid().ToString(),
+            Role = AuthorRole.Tool.ToString().ToLower(),
+            Date = DateTime.UtcNow,
+            Content = JsonSerializer.Serialize<ToolContentResponse>(searchResults, options)
+        };
+        // add search results to the conversation
+        conversation.Messages.Add(toolMsg);
+
+        // --- Do the chat completion ---
+
+        var completionResult = await chat.CompleteChat([.. conversation.Messages]);
+        completionResult.HistoryMetadata = historyMetadata;
+
+        //    except Exception as e:
+        //        logging.exception("Exception in /history/generate")
+        //        return jsonify({ "error": str(e)}), 500
+        return Results.Ok(completionResult);
+    }
 
     private static async Task<IResult> GetEnsureHistoryAsync(HttpContext httpContext, [FromServices] CosmosConversationService history)
     {
-        // todo: refactor the UI so that this can be refactored to make any amount of sense...
         var (cosmosIsConfigured, _) = await history.EnsureAsync();
 
         return cosmosIsConfigured
@@ -40,7 +107,7 @@ public static partial class Endpoints
 
     private static async Task<IResult> ClearHistoryAsync(
         HttpContext context,
-        Conversation conversation, 
+        Conversation conversation,
         [FromServices] CosmosConversationService conversationService)
     {
         // get the user id from the request headers
@@ -80,7 +147,7 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> RenameHistoryAsync(
-        HttpContext context, 
+        HttpContext context,
         [FromBody] Conversation conversation,
         [FromServices] CosmosConversationService conversationService)
     {
@@ -101,7 +168,7 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> DeleteHistory(
-        HttpContext context, 
+        HttpContext context,
         [FromBody] Conversation conversation,
         [FromServices] CosmosConversationService conversationService)
     {
@@ -125,7 +192,7 @@ public static partial class Endpoints
     }
 
     private static async Task<IResult> MessageFeedbackAsync(
-        HttpContext context, 
+        HttpContext context,
         [FromBody] HistoryMessage message,
         [FromServices] CosmosConversationService conversationService)
     {
@@ -153,12 +220,14 @@ public static partial class Endpoints
             return Results.Unauthorized();
 
         var convosAsync = history.GetConversationsAsync(user.UserPrincipalId, 25, offset: offset);
+
         var conversations = await convosAsync.ToListAsync();
 
-        if (conversations == null || conversations.Count != 0)
+        if (conversations == null || conversations.Count == 0)
             return Results.NotFound(new { error = $"No conversations for {user.UserPrincipalId} were found" });
 
         return Results.Ok(conversations);
+
     }
 
     private static async Task<IResult> ReadHistoryAsync(
@@ -223,54 +292,10 @@ public static partial class Endpoints
             return Results.BadRequest("No bot messages found");
         }
 
-        return Results.Ok(new { success = true });        
-    }
-
-    private static async Task<IResult> GenerateHistoryAsync(
-        HttpContext context, 
-        [FromBody] Conversation conversation,
-        [FromServices] CosmosConversationService conversationService, 
-        [FromServices] ChatCompletionService chatCompletionService)
-    {
-        var user = GetUser(context);
-
-        if (user == null)
-            return Results.Unauthorized();
-
-        if (conversation == null)
-            return Results.BadRequest();
-
-        // if title is empty that means it is a new conversation
-        if (string.IsNullOrWhiteSpace(conversation.Title))
-        {
-            var title = await chatCompletionService.GenerateTitleAsync(conversation.Messages);
-
-            // should we persist user message here too?
-            _ = await conversationService.CreateConversationAsync(user.UserPrincipalId, title);
-        }
-
-        // Format the incoming message object in the "chat/completions" messages format
-        // then write it to the conversation history in cosmos
-        if (conversation.Messages.Count == 0 || !conversation.Messages[^1].Role.Equals(AuthorRole.User.ToString(), StringComparison.OrdinalIgnoreCase)) // move role format to enum?
-            return Results.BadRequest("No user messages found");
-
-        //var result = await chatCompletionService.AlternativeCompleteChat(conversation)
-
-        //var message = new Message(conversation_id, user_id, (Dictionary<string, object>)messages[0]);
-
-        // todo: build out history and send to conversations endpoint
-
-        //        # Submit request to Chat Completions for response
-        //        request_body = await request.get_json()
-        //        history_metadata["conversation_id"] = conversation_id
-        //        request_body["history_metadata"] = history_metadata
-        //        return await conversation_internal(request_body, request.headers)
-
-        //    except Exception as e:
-        //        logging.exception("Exception in /history/generate")
-        //        return jsonify({ "error": str(e)}), 500
         return Results.Ok(new { success = true });
     }
+
+
 
     #region Helpers
 

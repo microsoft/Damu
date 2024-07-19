@@ -5,8 +5,8 @@ namespace ChatApp.Server.Models;
 // todo: change type from string to enum?
 public class Conversation
 {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    [JsonPropertyName("conversation_id")]
+    public string Id { get; set; } = string.Empty; // VERY IMPORTANT TO BE EMPTY INITIALLY
     [JsonPropertyName("type")]
     public string Type { get; set; } = "conversation"; // other value types?
     [JsonPropertyName("createdAt")]
@@ -23,6 +23,8 @@ public class Conversation
 
 public class ConversationRequest
 {
+    [JsonPropertyName("conversation_id")]
+    public string Id { get; set; } = string.Empty;
     [JsonPropertyName("messages")]
     public List<Message> Messages { get; set; } = [];
 }

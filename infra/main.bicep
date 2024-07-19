@@ -175,8 +175,8 @@ module backend 'core/host/appservice.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': 'backend' })
     appServicePlanId: appServicePlan.outputs.id
-    runtimeName: 'python'
-    runtimeVersion: '3.10'
+    runtimeName: 'dotnet'
+    runtimeVersion: '8'
     scmDoBuildDuringDeployment: true
     managedIdentity: true
     authClientSecret: authClientSecret

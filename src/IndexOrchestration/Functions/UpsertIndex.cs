@@ -35,6 +35,7 @@ public class UpsertIndex
             DeploymentId = _functionSettings.AzureOpenAiEmbeddingDeployment
         };
 
+        // https://learn.microsoft.com/en-us/azure/search/index-similarity-and-scoring#relevance-tuning
         SearchIndex index = new(_functionSettings.SearchIndexName)
         {
             VectorSearch = new()
@@ -64,6 +65,7 @@ public class UpsertIndex
                 {
                     new SemanticConfiguration(
                         _functionSettings.SemanticSearchConfigName,
+                        // https://learn.microsoft.com/en-us/azure/search/semantic-search-overview#how-inputs-are-collected-and-summarized
                         new SemanticPrioritizedFields()
                         {
                             ContentFields =
@@ -72,19 +74,15 @@ public class UpsertIndex
                             },
                             KeywordsFields =
                             {
-                                new SemanticField(IndexFields.NoteChunk),
+                                // ordered by priority
                                 new SemanticField(IndexFields.NoteType),
-                                new SemanticField(IndexFields.NoteStatus),
-                                new SemanticField(IndexFields.AuthorId),
-                                new SemanticField(IndexFields.PatientFirstName),
-                                new SemanticField(IndexFields.PatientLastName),
-                                new SemanticField(IndexFields.AuthorFirstName),
-                                new SemanticField(IndexFields.AuthorLastName),
                                 new SemanticField(IndexFields.Department),
+                                new SemanticField(IndexFields.NoteStatus),
+                                // gender is more likely than names to impact medical context in a semantic manner
                                 new SemanticField(IndexFields.Gender),
-                                new SemanticField(IndexFields.FilePath),
-                                new SemanticField(IndexFields.Title),
-                                new SemanticField(IndexFields.Url)
+                                // lastnames are more likely to be unique but unclear if they carry semantic weight;
+                                new SemanticField(IndexFields.PatientLastName),
+                                new SemanticField(IndexFields.AuthorLastName)
                             }
                         })
                 }

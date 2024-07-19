@@ -1,5 +1,3 @@
-using ChatApp.Server.Models;
-
 namespace ChatApp.Server;
 
 public class Program

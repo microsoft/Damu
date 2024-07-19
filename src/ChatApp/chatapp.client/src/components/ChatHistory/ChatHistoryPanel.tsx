@@ -168,9 +168,9 @@ export function ChatHistoryPanel(_props: ChatHistoryPanelProps) {
         }}>
         <Stack className={styles.chatHistoryListContainer}>
           {appStateContext?.state.chatHistoryLoadingState === ChatHistoryLoadingState.Success &&
-            appStateContext?.state.isCosmosDBAvailable.cosmosDB && <ChatHistoryList />}
+            appStateContext?.state.isHistoryEnabled && <ChatHistoryList />}
           {appStateContext?.state.chatHistoryLoadingState === ChatHistoryLoadingState.Fail &&
-            appStateContext?.state.isCosmosDBAvailable && (
+            appStateContext?.state.isHistoryEnabled && (
               <>
                 <Stack>
                   <Stack horizontalAlign="center" verticalAlign="center" style={{ width: '100%', marginTop: 10 }}>

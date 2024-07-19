@@ -19,12 +19,11 @@ public static partial class Endpoints
         app.MapPost("/history/rename", RenameHistoryAsync);
         app.MapDelete("/history/delete", DeleteHistory);
         app.MapPost("/history/message_feedback", MessageFeedbackAsync);
-
+        app.MapPost("/history/update", UpdateHistoryAsync);
+        app.MapGet("/history/list", ListHistoryAsync);
+        app.MapPost("/history/read", ReadHistoryAsync);
         // Not implemented
-        app.MapPost("/history/generate", GenerateHistory);
-        app.MapPost("/history/update", UpdateHistory);
-        app.MapGet("/history/list", ListHistory);
-        app.MapPost("/history/read", ReadHistory);
+        app.MapPost("/history/generate", GenerateHistoryAsync);
 
         return app;
     }    
@@ -142,7 +141,7 @@ public static partial class Endpoints
             : Results.NotFound();
     }
 
-    private static async Task<IResult> ListHistory(
+    private static async Task<IResult> ListHistoryAsync(
         HttpContext context,
         [FromServices] ChatCompletionService chat,
         [FromServices] CosmosConversationService history,
@@ -162,7 +161,7 @@ public static partial class Endpoints
         return Results.Ok(conversations);
     }
 
-    private static async Task<IResult> ReadHistory(
+    private static async Task<IResult> ReadHistoryAsync(
         HttpContext context,
         [FromBody] Conversation conversation,
         [FromServices] CosmosConversationService history)
@@ -195,7 +194,7 @@ public static partial class Endpoints
         return Results.Ok(new { conversation_id = dbConversation.Id, messages = results });
     }
 
-    private static async Task<IResult> UpdateHistory(
+    private static async Task<IResult> UpdateHistoryAsync(
         HttpContext context,
         [FromBody] Conversation conversation,
         [FromServices] CosmosConversationService history)
@@ -227,9 +226,7 @@ public static partial class Endpoints
         return Results.Ok(new { success = true });        
     }
 
-    #region NotImplemented
-
-    private static async Task<IResult> GenerateHistory(
+    private static async Task<IResult> GenerateHistoryAsync(
         HttpContext context, 
         [FromBody] Conversation conversation,
         [FromServices] CosmosConversationService conversationService, 
@@ -272,11 +269,8 @@ public static partial class Endpoints
         //    except Exception as e:
         //        logging.exception("Exception in /history/generate")
         //        return jsonify({ "error": str(e)}), 500
-
-        await Task.Delay(0);
-        throw new NotImplementedException();
+        return Results.Ok(new { success = true });
     }
-    #endregion
 
     #region Helpers
 

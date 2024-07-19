@@ -19,6 +19,7 @@ export interface AppState {
   isChatHistoryOpen: boolean
   chatHistoryLoadingState: ChatHistoryLoadingState
   isCosmosDBAvailable: CosmosDBHealth
+  isHistoryEnabled: boolean
   chatHistory: Conversation[] | null
   filteredChatHistory: Conversation[] | null
   currentChat: Conversation | null
@@ -39,6 +40,7 @@ export type Action =
   | { type: 'DELETE_CURRENT_CHAT_MESSAGES'; payload: string }
   | { type: 'FETCH_CHAT_HISTORY'; payload: Conversation[] | null }
   | { type: 'FETCH_FRONTEND_SETTINGS'; payload: FrontendSettings | null }
+  | { type: 'SET_HISTORY_ENABLED'; payload: boolean }
   | {
       type: 'SET_FEEDBACK_STATE'
       payload: { answerId: string; feedback: Feedback.Positive | Feedback.Negative | Feedback.Neutral }
@@ -55,6 +57,7 @@ const initialState: AppState = {
     cosmosDB: false,
     status: CosmosDBStatus.NotConfigured
   },
+  isHistoryEnabled: false,
   frontendSettings: null,
   feedbackState: {}
 }
@@ -138,14 +141,18 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
                 })
         }
       }
-      getHistoryEnsure()
-  }, [state.frontendSettings])
+      if (state.isHistoryEnabled) {
+          getHistoryEnsure()
+      }
+  }, [state.isHistoryEnabled])
 
   useEffect(() => {
     const getFrontendSettings = async () => {
       frontendSettings()
-        .then(response => {
-          dispatch({ type: 'FETCH_FRONTEND_SETTINGS', payload: response as FrontendSettings })
+          .then(response => {
+            let settings = response as FrontendSettings
+              dispatch({ type: 'FETCH_FRONTEND_SETTINGS', payload: settings })
+              dispatch({ type: 'SET_HISTORY_ENABLED', payload: settings!.history_enabled! })
         })
         .catch(_err => {
           console.error('There was an issue fetching your data.')

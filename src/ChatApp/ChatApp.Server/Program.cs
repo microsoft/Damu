@@ -8,10 +8,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(nameof(CosmosOptions)));
-        builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection(nameof(StorageOptions)));
-        builder.Services.Configure<FhirOptions>(builder.Configuration.GetSection(nameof(FhirOptions)));
-
+        builder.Services.AddOptions(builder.Configuration);
         // Add services to the container.
         builder.Services.AddAuthorization();
 

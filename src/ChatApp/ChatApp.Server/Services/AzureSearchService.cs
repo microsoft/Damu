@@ -2,10 +2,11 @@
 using Azure.Search.Documents.Models;
 using ChatApp.Server.Models;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace ChatApp.Server.Services;
 
-public class AzureSearchService(SearchClient searchClient, IConfiguration config)
+public class AzureSearchService(SearchClient searchClient, IOptions<AISearchOptions> options)
 {
     private string[] _indexContentFields = [
         "CSN",
@@ -27,26 +28,23 @@ public class AzureSearchService(SearchClient searchClient, IConfiguration config
         string? query = null,
         float[]? embedding = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.SemanticConfigurationName);
+
         if (query is null && embedding is null)
-        {
             throw new ArgumentException("Either query or embedding must be provided");
-        }
 
-        string semanticConfigurationName = config["AZURE_SEARCH_SEMANTIC_CONFIGURATION_NAME"] ?? "damu-semantic-config";
-        bool useSemanticCaptions = false;
-
-        var options = new SearchOptions
+        var response = await searchClient.SearchAsync<SearchDocument>(query, new SearchOptions
         {
             Filter = "",
             Size = 5,
             Select = {
                "*"
-            }, 
+            },
             IncludeTotalCount = true,
             QueryType = SearchQueryType.Full,
             SemanticSearch = new SemanticSearchOptions
             {
-                SemanticConfigurationName = semanticConfigurationName,
+                SemanticConfigurationName = options?.Value.SemanticConfigurationName,
                 QueryCaption = new(QueryCaptionType.None)
             },
             VectorSearch = new()
@@ -60,9 +58,12 @@ public class AzureSearchService(SearchClient searchClient, IConfiguration config
                     }
                 },
             }
-        };
+        });
 
-        SearchResults<SearchDocument> searchResult = await searchClient.SearchAsync<SearchDocument>(query, options);
+        if (response.Value == null)
+            throw new Exception(response.GetRawResponse().ReasonPhrase);
+
+        var searchResult = response.Value;
 
         var sb = new List<SupportingContentRecord>();
         await foreach (var doc in searchResult.GetResultsAsync())
@@ -103,7 +104,7 @@ public class AzureSearchService(SearchClient searchClient, IConfiguration config
         }
 
         return new ToolContentResponse(sb, [query]);
-        
+
     }
 
 }

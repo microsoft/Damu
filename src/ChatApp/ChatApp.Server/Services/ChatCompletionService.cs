@@ -1,6 +1,8 @@
 ﻿#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+using Azure;
 using Azure.Identity;
 using ChatApp.Server.Models;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -11,12 +13,14 @@ namespace ChatApp.Server.Services;
 public class ChatCompletionService
 {
     private readonly Kernel _kernel;
-    private readonly PromptExecutionSettings _promptSettings;
+    private readonly OpenAIPromptExecutionSettings _promptSettings;
     private readonly string _promptDirectory;
 
-    public ChatCompletionService(IConfiguration config, AzureSearchService searchService)
+    public ChatCompletionService(IOptions<OpenAIOptions> options, IOptions<AzureAdOptions> adOptions, AzureSearchService searchService)
     {
-        var defaultAzureCreds = new DefaultAzureCredential();
+        ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.Endpoint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.ChatDeployment);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options?.Value?.EmbeddingDeployment);
 
         _promptSettings = new OpenAIPromptExecutionSettings
         {
@@ -28,22 +32,43 @@ public class ChatCompletionService
 
         var builder = Kernel.CreateBuilder();
 
-        var deployedModelName = config["AZURE_OPENAI_CHATGPT_DEPLOYMENT"];
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(deployedModelName);
-        var embeddingModelName = config["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"];
-        if (!string.IsNullOrEmpty(embeddingModelName))
+        if (string.IsNullOrEmpty(options.Value.ApiKey)) // use managed identity
         {
-            var endpoint = config["AZURE_OPENAI_ENDPOINT"];
-            ArgumentNullException.ThrowIfNullOrWhiteSpace(endpoint);
-            builder = builder.AddAzureOpenAITextEmbeddingGeneration(embeddingModelName, endpoint, defaultAzureCreds);
-            builder = builder.AddAzureOpenAIChatCompletion(deployedModelName, endpoint, defaultAzureCreds);
+            var defaultAzureCreds = string.IsNullOrWhiteSpace(adOptions?.Value?.TenantId)
+                ? new DefaultAzureCredential()
+                : new DefaultAzureCredential(
+                    new DefaultAzureCredentialOptions
+                    {
+                        TenantId = adOptions.Value.TenantId
+                    });
+
+            builder = builder.AddAzureOpenAITextEmbeddingGeneration(
+            options.Value.EmbeddingDeployment,
+            options.Value.Endpoint,
+            defaultAzureCreds);
+
+            builder = builder.AddAzureOpenAIChatCompletion(
+            options.Value.ChatDeployment,
+            options.Value.Endpoint,
+            defaultAzureCreds);
+        }
+        else // use api key
+        {
+            builder = builder.AddAzureOpenAIChatCompletion(
+                options.Value.EmbeddingDeployment,
+                options.Value.Endpoint,
+                options.Value.ApiKey);
+
+            builder = builder.AddAzureOpenAIChatCompletion(
+                options.Value.ChatDeployment,
+                options.Value.Endpoint,
+                options.Value.ApiKey);
         }
 
-        _promptDirectory = Path.Combine(Directory.GetCurrentDirectory(),"Plugins");
+        _promptDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Plugins");
 
         builder.Plugins.AddFromPromptDirectory(_promptDirectory);
 
-        //builder.Plugins.AddFromObject(searchService, "SearchNotes");
         _kernel = builder.Build();
     }
 

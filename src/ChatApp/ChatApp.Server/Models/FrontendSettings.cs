@@ -1,36 +1,37 @@
+
 using System.Text.Json.Serialization;
 
 namespace ChatApp.Server.Models;
 
 public class FrontendSettings
 {
-    [JsonPropertyName("auth_enabled")]
+    [ConfigurationKeyName("auth_enabled"), JsonPropertyName("auth_enabled")]
     public bool AuthEnabled { get; set; } = false;
 
-    [JsonPropertyName("feedback_enabled")]
+    [ConfigurationKeyName("feedback_enabled"), JsonPropertyName("feedback_enabled")]
     public bool FeedbackEnabled { get; set; } = false;
 
-    [JsonPropertyName("ui")]
+    [ConfigurationKeyName("ui"), JsonPropertyName("ui")]
     public UiSettings Ui { get; set; } = new();
 
-    [JsonPropertyName("sanitize_answer")]
+    [ConfigurationKeyName("sanitize_answer"), JsonPropertyName("sanitize_answer")]
     public bool SanitizeAnswer { get; set; } = false;
 
-    [JsonPropertyName("history_enabled")]
+    [ConfigurationKeyName("history_enabled"), JsonPropertyName("history_enabled")]
     public bool HistoryEnabled { get; set; } = false;
 }
 
 public class UiSettings
 {
-    [JsonPropertyName("title")]
+    [ConfigurationKeyName("title"), JsonPropertyName("title")]
     public string Title { get; set; } = "Damu";
 
-    [JsonPropertyName("chat_title")]
+    [ConfigurationKeyName("chat_title"), JsonPropertyName("chat_title")]
     public string ChatTitle { get; set; } = "Start chatting";
 
-    [JsonPropertyName("chat_description")]
+    [ConfigurationKeyName("chat_description"), JsonPropertyName("chat_description")]
     public string ChatDescription { get; set; } = "This chatbot is configured to answer your questions";
 
-    [JsonPropertyName("show_share_button")]
+    [ConfigurationKeyName("show_share_button"), JsonPropertyName("show_share_button")]
     public bool ShowShareButton { get; set; } = true;
 }

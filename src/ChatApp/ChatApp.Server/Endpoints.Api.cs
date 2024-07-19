@@ -12,7 +12,7 @@ public static partial class Endpoints
 {
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        app.MapGet("/frontend_settings", GetFrontendSettings)
+        app.MapGet("/frontend_settings", ([FromServices] IOptions<FrontendSettings> settings) => settings.Value)
             .WithName("GetFrontendSettings")
             .WithOpenApi();
 
@@ -27,16 +27,7 @@ public static partial class Endpoints
         });
 
         return app;
-    }
-
-    private static IResult GetFrontendSettings(
-        HttpContext httpContext, 
-        [FromServices] IOptions<FrontendSettings> settings)
-    {
-        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
-        var settingsJson = JsonSerializer.Serialize(settings.Value, options);
-        return Results.Ok(JsonSerializer.Deserialize<object>(settingsJson));
-    } 
+    }     
 
     private static async Task<IResult> PostConversationAsync(
         [FromServices] ChatCompletionService chat,

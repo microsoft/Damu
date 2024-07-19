@@ -1,4 +1,5 @@
 ﻿using Azure.Search.Documents.Models;
+using System.Text.Json.Serialization;
 
 namespace ChatApp.Server.Services;
 
@@ -51,9 +52,17 @@ public class MinimalSearchResult
         fullSearchResult.TryGetValue(nameof(BirthDate), out var birthDateObj);
         if (birthDateObj is DateTimeOffset birthDate)
             BirthDate = birthDate;
+
+        fullSearchResult.TryGetValue(nameof(NoteChunkOrder), out var noteChunkOrderObj);
+        if (noteChunkOrderObj is int noteChunkOrder)
+            NoteChunkOrder = noteChunkOrder;
     }
 
     public double Score { get; set; }
+    // just using this to help with ordering in the api but should be eliminated from front end response...
+    [JsonIgnore]
+    public int NoteChunkOrder { get; set; }
+
     public string IndexRecordId { get; set; } = string.Empty;
     public long? NoteId { get; set; }
     public long? CSN { get; set; }

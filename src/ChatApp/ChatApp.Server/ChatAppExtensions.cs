@@ -27,7 +27,11 @@ internal static class ChatAppExtensions
 
     internal static void AddChatAppServices(this IServiceCollection services, IConfiguration config)
     {
-        var defaultAzureCreds = new DefaultAzureCredential();
+        var azureAdOptions = config.GetSection(nameof(AzureAdOptions)).Get<AzureAdOptions>();
+        var frontendSettings = config.GetSection(nameof(FrontendSettings)).Get<FrontendSettings>();
+
+        var defaultAzureCreds = string.IsNullOrEmpty(azureAdOptions.TenantId) ? new DefaultAzureCredential()
+            : new DefaultAzureCredential(new DefaultAzureCredentialOptions { TenantId = azureAdOptions.TenantId });
 
         services.AddSingleton<ChatCompletionService>();
 
@@ -61,7 +65,7 @@ internal static class ChatAppExtensions
 
         services.AddSingleton<AzureSearchService>();
 
-        var isChatEnabled = bool.TryParse(config["ENABLE_CHAT_HISTORY"], out var result) && result;
+        var isChatEnabled = frontendSettings?.HistoryEnabled ?? false;
 
         if (isChatEnabled)
         {

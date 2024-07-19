@@ -12,12 +12,12 @@ public static partial class Endpoints
 {
     public static WebApplication MapApiEndpoints(this WebApplication app)
     {
-        app.MapGet("/frontend_settings", (HttpContext httpContext, [FromServices] IOptions<FrontendSettings> options) => options.Value)
+        app.MapGet("/frontend_settings", GetFrontendSettings)
             .WithName("GetFrontendSettings")
             .WithOpenApi();
 
-        app.MapPost("/conversation", PostConversation);
-        app.MapPost("/search", PostSearch);
+        app.MapPost("/conversation", PostConversationAsync);
+        app.MapPost("/search", PostSearchAsync);
 
         app.MapGet("notes/{id}", async (long id, [FromServices] NoteService noteService) =>
         {
@@ -29,7 +29,16 @@ public static partial class Endpoints
         return app;
     }
 
-    private static async Task<IResult> PostConversation(
+    private static IResult GetFrontendSettings(
+        HttpContext httpContext, 
+        [FromServices] IOptions<FrontendSettings> settings)
+    {
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        var settingsJson = JsonSerializer.Serialize(settings.Value, options);
+        return Results.Ok(JsonSerializer.Deserialize<object>(settingsJson));
+    } 
+
+    private static async Task<IResult> PostConversationAsync(
         [FromServices] ChatCompletionService chat,
         [FromServices] AzureSearchService search,
         [FromBody] ConversationRequest history)
@@ -53,7 +62,7 @@ public static partial class Endpoints
         return Results.Ok(await chat.CompleteChat([.. history.Messages]));
     }
 
-    private static async Task<IResult> PostSearch(
+    private static async Task<IResult> PostSearchAsync(
         [FromServices] AzureSearchService search,
         [FromQuery] string query)
     {

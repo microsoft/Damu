@@ -49,7 +49,7 @@ export const historyList = async (offset = 0): Promise<Conversation[] | null> =>
       const conversations: Conversation[] = await Promise.all(
         payload.map(async (conv: any) => {
           let convMessages: ChatMessage[] = []
-          convMessages = await historyRead(conv.id)
+          convMessages = await historyRead(conv.conversation_id)
             .then(res => {
               return res
             })
@@ -58,7 +58,7 @@ export const historyList = async (offset = 0): Promise<Conversation[] | null> =>
               return []
             })
           const conversation: Conversation = {
-            id: conv.id,
+            id: conv.conversation_id,
             title: conv.title,
             date: conv.createdAt,
             messages: convMessages

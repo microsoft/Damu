@@ -101,7 +101,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
 
     const getHistoryEnsure = async () => {
       dispatch({ type: 'UPDATE_CHAT_HISTORY_LOADING_STATE', payload: ChatHistoryLoadingState.Loading })
-        if (!state.frontendSettings!.history_enabled) {
+        if (state.frontendSettings == null || state.frontendSettings!.history_enabled == false) {
             // if frontendSettings.history_enabled is false then set cosmosDB status to NotConfigured
             dispatch({ type: 'UPDATE_CHAT_HISTORY_LOADING_STATE', payload: ChatHistoryLoadingState.Fail })
             dispatch({ type: 'SET_COSMOSDB_STATUS', payload: { cosmosDB: false, status: CosmosDBStatus.NotConfigured } })
@@ -141,9 +141,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
                 })
         }
       }
-      if (state.isHistoryEnabled) {
-          getHistoryEnsure()
-      }
+      
+      getHistoryEnsure()
   }, [state.isHistoryEnabled])
 
   useEffect(() => {

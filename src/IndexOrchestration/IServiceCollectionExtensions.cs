@@ -1,28 +1,34 @@
-using Api.Models;
+﻿using Api.Models;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.AI.OpenAI;
-using Azure.Core;
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
-using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWebApplication()
-    .ConfigureServices(services =>
+namespace IndexOrchestration;
+
+internal static class IServiceCollectionExtensions
+{
+    internal static void AddIndexOrchestrationServices(this IServiceCollection services, IConfiguration config)
     {
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
-        services.AddSingleton<FunctionSettings>();
+        var tenantId = config["TenantId"];
+        var defaultCreds = string.IsNullOrWhiteSpace(tenantId)
+        ? new DefaultAzureCredential()
+            : new DefaultAzureCredential(
+                new DefaultAzureCredentialOptions
+                {
+                    TenantId = tenantId
+                });
+
         services.AddTransient(services =>
         {
             var settings = services.GetRequiredService<FunctionSettings>();
 
             return string.IsNullOrWhiteSpace(settings.DocIntelKey)
-            ? new DocumentIntelligenceClient(settings.DocIntelEndPoint, new DefaultAzureCredential())
+            ? new DocumentIntelligenceClient(settings.DocIntelEndPoint, defaultCreds)
             : new DocumentIntelligenceClient(settings.DocIntelEndPoint, new AzureKeyCredential(settings.DocIntelKey));
         });
         services.AddTransient(services =>
@@ -30,7 +36,7 @@ var host = new HostBuilder()
             var settings = services.GetRequiredService<FunctionSettings>();
 
             return string.IsNullOrWhiteSpace(settings.AzureOpenAiKey)
-            ? new OpenAIClient(settings.AzureOpenAiEndpoint, new DefaultAzureCredential())
+            ? new OpenAIClient(settings.AzureOpenAiEndpoint, defaultCreds)
             : new OpenAIClient(settings.AzureOpenAiEndpoint, new AzureKeyCredential(settings.AzureOpenAiKey));
         });
         services.AddTransient(services =>
@@ -38,7 +44,7 @@ var host = new HostBuilder()
             var settings = services.GetRequiredService<FunctionSettings>();
 
             return string.IsNullOrWhiteSpace(settings.SearchKey)
-            ? new SearchClient(settings.SearchEndpoint, settings.SearchIndexName, new DefaultAzureCredential())
+            ? new SearchClient(settings.SearchEndpoint, settings.SearchIndexName, defaultCreds)
             : new SearchClient(settings.SearchEndpoint, settings.SearchIndexName, new AzureKeyCredential(settings.SearchKey));
         });
         services.AddTransient(services =>
@@ -46,10 +52,8 @@ var host = new HostBuilder()
             var settings = services.GetRequiredService<FunctionSettings>();
 
             return string.IsNullOrWhiteSpace(settings.SearchKey)
-            ? new SearchIndexClient(settings.SearchEndpoint, new DefaultAzureCredential())
+            ? new SearchIndexClient(settings.SearchEndpoint, defaultCreds)
             : new SearchIndexClient(settings.SearchEndpoint, new AzureKeyCredential(settings.SearchKey));
         });
-    })
-    .Build();
-
-await host.RunAsync();
+    }
+}

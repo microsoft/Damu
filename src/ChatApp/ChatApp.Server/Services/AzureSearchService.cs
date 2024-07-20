@@ -177,7 +177,6 @@ public class AzureSearchService(SearchClient searchClient, IOptions<AISearchOpti
         // trim results down by relevancy score
         return allResults.Where(r => r.Score > relevancyThreshold).ToList();
 
-
         //    // https://learn.microsoft.com/en-us/azure/search/index-similarity-and-scoring#number-of-ranked-results-in-a-full-text-query-response
         //    // https://learn.microsoft.com/en-us/azure/search/search-pagination-page-layout#paging-results
         //    await foreach (var doc in response.Value.GetResultsAsync())

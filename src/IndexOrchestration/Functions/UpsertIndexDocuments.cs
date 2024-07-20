@@ -93,9 +93,7 @@ public class UpsertIndexDocuments
             sampleDocuments = [await ConvertToSearchDocumentAsync(sourceNoteRecord)];
         }
 
-
         await DeleteOldChunksAsync(sourceNoteRecord.NoteId.Value, sampleDocuments);
-
 
         await LoadIndexAsync(sampleDocuments);
     }

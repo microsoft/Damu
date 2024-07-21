@@ -18,15 +18,8 @@ param searchServiceName string = ''
 param searchServiceResourceGroupName string = ''
 param searchServiceResourceGroupLocation string = location
 param searchServiceSkuName string = ''
-param searchIndexName string = 'gptkbindex'
-param searchUseSemanticSearch bool = false
-param searchSemanticSearchConfig string = 'default'
-param searchTopK int = 5
-param searchEnableInDomain bool = true
-param searchContentColumns string = 'content'
-param searchFilenameColumn string = 'filepath'
-param searchTitleColumn string = 'title'
-param searchUrlColumn string = 'url'
+param searchIndexName string = 'damu-index'
+param searchSemanticSearchConfig string = 'damu-semantic-config'
 
 param openAiResourceName string = ''
 param openAiResourceGroupName string = ''
@@ -45,6 +38,7 @@ param chatModelName string = 'gpt-4o'
 
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
+param embeddingVectorDimension int = 1536
 
 @description('Name of the storage account')
 param storageAccountName string = ''
@@ -71,6 +65,8 @@ param cosmosAccountName string = ''
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Name of the Azure Function App Service Plan')
+param functionAppServicePlanName string = ''
 @description('Name of the Azure Function App')
 param functionServiceName string = ''
 
@@ -168,18 +164,15 @@ module appServicePlan 'core/host/appserviceplan.bicep' = {
 // The application frontend
 var appServiceName = !empty(backendServiceName) ? backendServiceName : '${abbrs.webSitesAppService}backend-${resourceToken}'
 var authIssuerUri = '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
-module backend 'core/host/appservice.bicep' = {
+module backend 'app/backend.bicep' = {
   name: 'web'
   scope: resourceGroup
   params: {
-    name: appServiceName
     location: location
     tags: union(tags, { 'azd-service-name': 'backend' })
-    appServicePlanId: appServicePlan.outputs.id
-    runtimeName: 'dotnet'
-    runtimeVersion: '8'
-    scmDoBuildDuringDeployment: true
-    managedIdentity: true
+    appServicePlanName: appServicePlanName
+    appServiceName: appServiceName
+    storageAccountName: storage.outputs.name
     authClientSecret: authClientSecret
     authClientId: authClientId
     authIssuerUri: authIssuerUri
@@ -193,32 +186,19 @@ module backend 'core/host/appservice.bicep' = {
       'FrontendSettings:sanitize_answer': false
       'FrontendSettings:history_enabled': isHistoryEnabled
       // search
-      'AISearchOptions:Endpoint': ''
+      'AISearchOptions:Endpoint': searchService.outputs.endpoint
       'AISearchOptions:ApiKey': ''
-      'AISearchOptions:IndexName': 'damu-index'
-      'AISearchOptions:SemanticConfigurationName': 'damu-semantic-config'
+      'AISearchOptions:IndexName': searchIndexName
+      'AISearchOptions:SemanticConfigurationName': searchSemanticSearchConfig
       // openai
-      'OpenAIOptions:Endpoint': ''
+      'OpenAIOptions:Endpoint': openAi.outputs.endpoint
       'OpenAIOptions:ApiKey': ''
-      'OpenAIOptions:ChatDeployment': 'gpt-4o'
-      'OpenAIOptions:EmbeddingDeployment': 'embedding'
+      'OpenAIOptions:ChatDeployment': chatDeploymentName
+      'OpenAIOptions:EmbeddingDeployment': embeddingDeploymentName
       // storage
       'StorageOptions:BlobStorageEndpoint': storage.outputs.primaryEndpoints.blob
       'StorageOptions:BlobStorageConnectionString': ''
       'StorageOptions:BlobStorageContainerName': storageContainerName      
-    }
-  }
-}
-module appServicePlanApi './core/host/appserviceplan.bicep' = {
-  name: 'appserviceplanApi'
-  scope: resourceGroup
-  params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
-    location: location
-    tags: tags
-    sku: {
-      name: 'Y1'
-      tier: 'Dynamic'
     }
   }
 }
@@ -232,7 +212,7 @@ module function './app/function.bicep' = {
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanId: appServicePlan.outputs.id
+    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
     storageAccountName: storage.outputs.name
     useManagedIdentity: true
     appSettings: {
@@ -242,8 +222,8 @@ module function './app/function.bicep' = {
       DocIntelEndPoint: formRecognizer.outputs.endpoint
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
       IncomingBlobConnStr: ''
-      ModelDimensions: '3072'
-      ProjectPrefix: 'damu'
+      ModelDimensions: embeddingVectorDimension
+      ProjectPrefix: environmentName
       SearchEndpoint: searchService.outputs.endpoint
     }
   }
@@ -452,14 +432,7 @@ output AZURE_SEARCH_SERVICE string = searchService.outputs.name
 output AZURE_SEARCH_SERVICE_RESOURCE_GROUP string = searchServiceResourceGroup.name
 output AZURE_SEARCH_SKU_NAME string = searchService.outputs.skuName
 output AZURE_SEARCH_KEY string = searchService.outputs.adminKey
-output AZURE_SEARCH_USE_SEMANTIC_SEARCH bool = searchUseSemanticSearch
 output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = searchSemanticSearchConfig
-output AZURE_SEARCH_TOP_K int = searchTopK
-output AZURE_SEARCH_ENABLE_IN_DOMAIN bool = searchEnableInDomain
-output AZURE_SEARCH_CONTENT_COLUMNS string = searchContentColumns
-output AZURE_SEARCH_FILENAME_COLUMN string = searchFilenameColumn
-output AZURE_SEARCH_TITLE_COLUMN string = searchTitleColumn
-output AZURE_SEARCH_URL_COLUMN string = searchUrlColumn
 
 // openai
 output AZURE_OPENAI_RESOURCE string = openAi.outputs.name

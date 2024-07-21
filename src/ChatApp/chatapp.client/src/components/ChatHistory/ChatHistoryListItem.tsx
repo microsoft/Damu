@@ -295,7 +295,7 @@ export const ChatHistoryListItemGroups: React.FC<ChatHistoryListItemGroupsProps>
   const appStateContext = useContext(AppStateContext)
   const observerTarget = useRef(null)
   const [, setSelectedItem] = React.useState<Conversation | null>(null)
-  const [offset, setOffset] = useState<number>(25)
+  const [offset, setOffset] = useState<number>(0)
   const [observerCounter, setObserverCounter] = useState(0)
   const [showSpinner, setShowSpinner] = useState(false)
   const firstRender = useRef(true)
@@ -316,7 +316,7 @@ export const ChatHistoryListItemGroups: React.FC<ChatHistoryListItemGroupsProps>
       return
     }
     handleFetchHistory()
-    setOffset(offset => (offset += 25))
+    setOffset(offset => (offset += 25)) // BUG HERE
   }, [observerCounter])
 
   const handleFetchHistory = async () => {
@@ -335,20 +335,20 @@ export const ChatHistoryListItemGroups: React.FC<ChatHistoryListItemGroupsProps>
     })
   }
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting) setObserverCounter(observerCounter => (observerCounter += 1))
-      },
-      { threshold: 1 }
-    )
+  //useEffect(() => {
+  //  const observer = new IntersectionObserver(
+  //    entries => {
+  //      if (entries[0].isIntersecting) setObserverCounter(observerCounter => (observerCounter += 1))
+  //    },
+  //    { threshold: 1 }
+  //  )
 
-    if (observerTarget.current) observer.observe(observerTarget.current)
+  //  if (observerTarget.current) observer.observe(observerTarget.current)
 
-    return () => {
-      if (observerTarget.current) observer.unobserve(observerTarget.current)
-    }
-  }, [observerTarget])
+  //  return () => {
+  //    if (observerTarget.current) observer.unobserve(observerTarget.current)
+  //  }
+  //}, [observerTarget])
 
   return (
     <div className={styles.listContainer} data-is-scrollable>

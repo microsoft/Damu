@@ -165,6 +165,8 @@ internal class CosmosConversationService
         using FeedIterator<Conversation> feed = _container.GetItemLinqQueryable<Conversation>()
             .Where(m => m.UserId == userId && m.Type == "conversation")
             .OrderByDescending(m => m.CreatedAt)
+            .Skip(offset)
+            .Take(limit)
             .ToFeedIterator();
         
         while (feed.HasMoreResults)

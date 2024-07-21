@@ -7,7 +7,7 @@ param applicationInsightsName string = ''
 param appServicePlanId string
 @secure()
 param appSettings object = {}
-param serviceName string = 'function'
+param serviceName string = 'index-function'
 param storageAccountName string
 param useManagedIdentity bool
 

@@ -36,14 +36,13 @@ param formRecognizerResourceGroupName string = ''
 param formRecognizerResourceGroupLocation string = location
 param formRecognizerSkuName string = 'S0'
 param openAiSkuName string = ''
-param openAIModel string = 'gpt-4o'
-param openAIModelName string = 'gpt-4o'
-param openAITemperature int = 0
-param openAITopP int = 1
-param openAIMaxTokens int = 1000
-param openAIStopSequence string = ''
-param openAISystemMessage string = 'You are an AI assistant that helps people find information.'
-param openAIStream bool = false
+
+@description('Name of the chat completion model deployment')
+param chatDeploymentName string = 'gpt-4o'
+
+@description('Name of the chat completion model')
+param chatModelName string = 'gpt-4o'
+
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
 
@@ -65,6 +64,8 @@ param authClientId string
 param authClientSecret string
 
 // Used for Cosmos DB
+@description('Is chat history enabled')
+param isHistoryEnabled bool = false
 param cosmosAccountName string = ''
 
 @description('Id of the user or app to assign application roles')
@@ -160,7 +161,7 @@ module appServicePlan 'core/host/appserviceplan.bicep' = {
       name: 'B1'
       capacity: 1
     }
-    kind: 'linux'
+    kind: 'windows'
   }
 }
 
@@ -183,29 +184,28 @@ module backend 'core/host/appservice.bicep' = {
     authClientId: authClientId
     authIssuerUri: authIssuerUri
     appSettings: {
+      // frontend settings
+      'FrontendSettings:auth_enabled': 'false'
+      'FrontendSettings:feedback_enabled': 'false'
+      'FrontendSettings:ui:title': 'Damu'
+      'FrontendSettings:ui:chat_description': 'This chatbot is configured to answer your questions.'
+      'FrontendSettings:ui:show_share_button': true
+      'FrontendSettings:sanitize_answer': false
+      'FrontendSettings:history_enabled': isHistoryEnabled
       // search
-      AZURE_SEARCH_INDEX: searchIndexName
-      AZURE_SEARCH_SERVICE: searchService.outputs.name
-      AZURE_SEARCH_KEY: searchService.outputs.adminKey
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: searchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: searchSemanticSearchConfig
-      AZURE_SEARCH_TOP_K: searchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: searchEnableInDomain
-      AZURE_SEARCH_CONTENT_COLUMNS: searchContentColumns
-      AZURE_SEARCH_FILENAME_COLUMN: searchFilenameColumn
-      AZURE_SEARCH_TITLE_COLUMN: searchTitleColumn
-      AZURE_SEARCH_URL_COLUMN: searchUrlColumn
+      'AISearchOptions:Endpoint': ''
+      'AISearchOptions:ApiKey': ''
+      'AISearchOptions:IndexName': 'damu-index'
+      'AISearchOptions:SemanticConfigurationName': 'damu-semantic-config'
       // openai
-      AZURE_OPENAI_RESOURCE: openAi.outputs.name
-      AZURE_OPENAI_MODEL: openAIModel
-      AZURE_OPENAI_MODEL_NAME: openAIModelName
-      AZURE_OPENAI_KEY: openAi.outputs.key
-      AZURE_OPENAI_TEMPERATURE: openAITemperature
-      AZURE_OPENAI_TOP_P: openAITopP
-      AZURE_OPENAI_MAX_TOKENS: openAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: openAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: openAISystemMessage
-      AZURE_OPENAI_STREAM: openAIStream
+      'OpenAIOptions:Endpoint': ''
+      'OpenAIOptions:ApiKey': ''
+      'OpenAIOptions:ChatDeployment': 'gpt-4o'
+      'OpenAIOptions:EmbeddingDeployment': 'embedding'
+      // storage
+      'StorageOptions:BlobStorageEndpoint': storage.outputs.primaryEndpoints.blob
+      'StorageOptions:BlobStorageConnectionString': ''
+      'StorageOptions:BlobStorageContainerName': storageContainerName      
     }
   }
 }
@@ -223,7 +223,7 @@ module appServicePlanApi './core/host/appserviceplan.bicep' = {
   }
 }
 
-// The application backend
+// Index Orchestrator
 module function './app/function.bicep' = {
   name: 'function'
   scope: resourceGroup
@@ -234,7 +234,6 @@ module function './app/function.bicep' = {
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     appServicePlanId: appServicePlan.outputs.id
     storageAccountName: storage.outputs.name
-    allowedOrigins: [ backend.outputs.uri ]
     useManagedIdentity: true
     appSettings: {
       AzureOpenAiEmbeddingDeployment: embeddingDeploymentName
@@ -262,10 +261,10 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
     }
     deployments: [
       {
-        name: openAIModel
+        name: chatDeploymentName
         model: {
           format: 'OpenAI'
-          name: openAIModelName
+          name: chatModelName
           version: '2024-05-13'
         }
         capacity: 30
@@ -316,8 +315,8 @@ module searchService 'core/search/search-services.bicep' = {
   }
 }
 
-// The application database
-module cosmos 'db.bicep' = {
+// The chat history database
+module cosmos 'db.bicep' = if (isHistoryEnabled) {
   name: 'cosmos'
   scope: resourceGroup
   params: {
@@ -466,17 +465,11 @@ output AZURE_SEARCH_URL_COLUMN string = searchUrlColumn
 output AZURE_OPENAI_RESOURCE string = openAi.outputs.name
 output AZURE_OPENAI_RESOURCE_GROUP string = openAiResourceGroup.name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_OPENAI_MODEL string = openAIModel
-output AZURE_OPENAI_MODEL_NAME string = openAIModelName
+output AZURE_OPENAI_CHAT_NAME string = chatDeploymentName
+output AZURE_OPENAI_CHAT_MODEL string = chatModelName
 output AZURE_OPENAI_SKU_NAME string = openAi.outputs.skuName
 output AZURE_OPENAI_KEY string = openAi.outputs.key
 output AZURE_OPENAI_EMBEDDING_NAME string = embeddingDeploymentName
-output AZURE_OPENAI_TEMPERATURE int = openAITemperature
-output AZURE_OPENAI_TOP_P int = openAITopP
-output AZURE_OPENAI_MAX_TOKENS int = openAIMaxTokens
-output AZURE_OPENAI_STOP_SEQUENCE string = openAIStopSequence
-output AZURE_OPENAI_SYSTEM_MESSAGE string = openAISystemMessage
-output AZURE_OPENAI_STREAM bool = openAIStream
 
 // cosmos
 output AZURE_COSMOSDB_ACCOUNT string = cosmos.outputs.accountName

@@ -18,15 +18,8 @@ param searchServiceName string = ''
 param searchServiceResourceGroupName string = ''
 param searchServiceResourceGroupLocation string = location
 param searchServiceSkuName string = ''
-param searchIndexName string = 'gptkbindex'
-param searchUseSemanticSearch bool = false
-param searchSemanticSearchConfig string = 'default'
-param searchTopK int = 5
-param searchEnableInDomain bool = true
-param searchContentColumns string = 'content'
-param searchFilenameColumn string = 'filepath'
-param searchTitleColumn string = 'title'
-param searchUrlColumn string = 'url'
+param searchIndexName string = 'damu-index'
+param searchSemanticSearchConfig string = 'damu-semantic-config'
 
 param openAiResourceName string = ''
 param openAiResourceGroupName string = ''
@@ -36,16 +29,16 @@ param formRecognizerResourceGroupName string = ''
 param formRecognizerResourceGroupLocation string = location
 param formRecognizerSkuName string = 'S0'
 param openAiSkuName string = ''
-param openAIModel string = 'gpt-4o'
-param openAIModelName string = 'gpt-4o'
-param openAITemperature int = 0
-param openAITopP int = 1
-param openAIMaxTokens int = 1000
-param openAIStopSequence string = ''
-param openAISystemMessage string = 'You are an AI assistant that helps people find information.'
-param openAIStream bool = false
+
+@description('Name of the chat completion model deployment')
+param chatDeploymentName string = 'gpt-4o'
+
+@description('Name of the chat completion model')
+param chatModelName string = 'gpt-4o'
+
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
+param embeddingVectorDimension int = 1536
 
 @description('Name of the storage account')
 param storageAccountName string = ''
@@ -65,11 +58,15 @@ param authClientId string
 param authClientSecret string
 
 // Used for Cosmos DB
+@description('Is chat history enabled')
+param isHistoryEnabled bool = false
 param cosmosAccountName string = ''
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@description('Name of the Azure Function App Service Plan')
+param functionAppServicePlanName string = ''
 @description('Name of the Azure Function App')
 param functionServiceName string = ''
 
@@ -160,70 +157,53 @@ module appServicePlan 'core/host/appserviceplan.bicep' = {
       name: 'B1'
       capacity: 1
     }
-    kind: 'linux'
+    kind: 'windows'
   }
 }
 
 // The application frontend
 var appServiceName = !empty(backendServiceName) ? backendServiceName : '${abbrs.webSitesAppService}backend-${resourceToken}'
 var authIssuerUri = '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
-module backend 'core/host/appservice.bicep' = {
+module backend 'app/backend.bicep' = {
   name: 'web'
   scope: resourceGroup
   params: {
-    name: appServiceName
     location: location
     tags: union(tags, { 'azd-service-name': 'backend' })
-    appServicePlanId: appServicePlan.outputs.id
-    runtimeName: 'dotnet'
-    runtimeVersion: '8'
-    scmDoBuildDuringDeployment: true
-    managedIdentity: true
+    appServicePlanName: appServicePlanName
+    appServiceName: appServiceName
+    storageAccountName: storage.outputs.name
     authClientSecret: authClientSecret
     authClientId: authClientId
     authIssuerUri: authIssuerUri
     appSettings: {
+      // frontend settings
+      'FrontendSettings:auth_enabled': 'false'
+      'FrontendSettings:feedback_enabled': 'false'
+      'FrontendSettings:ui:title': 'Damu'
+      'FrontendSettings:ui:chat_description': 'This chatbot is configured to answer your questions.'
+      'FrontendSettings:ui:show_share_button': true
+      'FrontendSettings:sanitize_answer': false
+      'FrontendSettings:history_enabled': isHistoryEnabled
       // search
-      AZURE_SEARCH_INDEX: searchIndexName
-      AZURE_SEARCH_SERVICE: searchService.outputs.name
-      AZURE_SEARCH_KEY: searchService.outputs.adminKey
-      AZURE_SEARCH_USE_SEMANTIC_SEARCH: searchUseSemanticSearch
-      AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG: searchSemanticSearchConfig
-      AZURE_SEARCH_TOP_K: searchTopK
-      AZURE_SEARCH_ENABLE_IN_DOMAIN: searchEnableInDomain
-      AZURE_SEARCH_CONTENT_COLUMNS: searchContentColumns
-      AZURE_SEARCH_FILENAME_COLUMN: searchFilenameColumn
-      AZURE_SEARCH_TITLE_COLUMN: searchTitleColumn
-      AZURE_SEARCH_URL_COLUMN: searchUrlColumn
+      'AISearchOptions:Endpoint': searchService.outputs.endpoint
+      'AISearchOptions:ApiKey': ''
+      'AISearchOptions:IndexName': searchIndexName
+      'AISearchOptions:SemanticConfigurationName': searchSemanticSearchConfig
       // openai
-      AZURE_OPENAI_RESOURCE: openAi.outputs.name
-      AZURE_OPENAI_MODEL: openAIModel
-      AZURE_OPENAI_MODEL_NAME: openAIModelName
-      AZURE_OPENAI_KEY: openAi.outputs.key
-      AZURE_OPENAI_TEMPERATURE: openAITemperature
-      AZURE_OPENAI_TOP_P: openAITopP
-      AZURE_OPENAI_MAX_TOKENS: openAIMaxTokens
-      AZURE_OPENAI_STOP_SEQUENCE: openAIStopSequence
-      AZURE_OPENAI_SYSTEM_MESSAGE: openAISystemMessage
-      AZURE_OPENAI_STREAM: openAIStream
-    }
-  }
-}
-module appServicePlanApi './core/host/appserviceplan.bicep' = {
-  name: 'appserviceplanApi'
-  scope: resourceGroup
-  params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
-    location: location
-    tags: tags
-    sku: {
-      name: 'Y1'
-      tier: 'Dynamic'
+      'OpenAIOptions:Endpoint': openAi.outputs.endpoint
+      'OpenAIOptions:ApiKey': ''
+      'OpenAIOptions:ChatDeployment': chatDeploymentName
+      'OpenAIOptions:EmbeddingDeployment': embeddingDeploymentName
+      // storage
+      'StorageOptions:BlobStorageEndpoint': storage.outputs.primaryEndpoints.blob
+      'StorageOptions:BlobStorageConnectionString': ''
+      'StorageOptions:BlobStorageContainerName': storageContainerName      
     }
   }
 }
 
-// The application backend
+// Index Orchestrator
 module function './app/function.bicep' = {
   name: 'function'
   scope: resourceGroup
@@ -232,9 +212,8 @@ module function './app/function.bicep' = {
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanId: appServicePlan.outputs.id
+    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
     storageAccountName: storage.outputs.name
-    allowedOrigins: [ backend.outputs.uri ]
     useManagedIdentity: true
     appSettings: {
       AzureOpenAiEmbeddingDeployment: embeddingDeploymentName
@@ -243,8 +222,8 @@ module function './app/function.bicep' = {
       DocIntelEndPoint: formRecognizer.outputs.endpoint
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
       IncomingBlobConnStr: ''
-      ModelDimensions: '3072'
-      ProjectPrefix: 'damu'
+      ModelDimensions: embeddingVectorDimension
+      ProjectPrefix: environmentName
       SearchEndpoint: searchService.outputs.endpoint
     }
   }
@@ -262,10 +241,10 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
     }
     deployments: [
       {
-        name: openAIModel
+        name: chatDeploymentName
         model: {
           format: 'OpenAI'
-          name: openAIModelName
+          name: chatModelName
           version: '2024-05-13'
         }
         capacity: 30
@@ -316,8 +295,8 @@ module searchService 'core/search/search-services.bicep' = {
   }
 }
 
-// The application database
-module cosmos 'db.bicep' = {
+// The chat history database
+module cosmos 'db.bicep' = if (isHistoryEnabled) {
   name: 'cosmos'
   scope: resourceGroup
   params: {
@@ -453,30 +432,17 @@ output AZURE_SEARCH_SERVICE string = searchService.outputs.name
 output AZURE_SEARCH_SERVICE_RESOURCE_GROUP string = searchServiceResourceGroup.name
 output AZURE_SEARCH_SKU_NAME string = searchService.outputs.skuName
 output AZURE_SEARCH_KEY string = searchService.outputs.adminKey
-output AZURE_SEARCH_USE_SEMANTIC_SEARCH bool = searchUseSemanticSearch
 output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = searchSemanticSearchConfig
-output AZURE_SEARCH_TOP_K int = searchTopK
-output AZURE_SEARCH_ENABLE_IN_DOMAIN bool = searchEnableInDomain
-output AZURE_SEARCH_CONTENT_COLUMNS string = searchContentColumns
-output AZURE_SEARCH_FILENAME_COLUMN string = searchFilenameColumn
-output AZURE_SEARCH_TITLE_COLUMN string = searchTitleColumn
-output AZURE_SEARCH_URL_COLUMN string = searchUrlColumn
 
 // openai
 output AZURE_OPENAI_RESOURCE string = openAi.outputs.name
 output AZURE_OPENAI_RESOURCE_GROUP string = openAiResourceGroup.name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_OPENAI_MODEL string = openAIModel
-output AZURE_OPENAI_MODEL_NAME string = openAIModelName
+output AZURE_OPENAI_CHAT_NAME string = chatDeploymentName
+output AZURE_OPENAI_CHAT_MODEL string = chatModelName
 output AZURE_OPENAI_SKU_NAME string = openAi.outputs.skuName
 output AZURE_OPENAI_KEY string = openAi.outputs.key
 output AZURE_OPENAI_EMBEDDING_NAME string = embeddingDeploymentName
-output AZURE_OPENAI_TEMPERATURE int = openAITemperature
-output AZURE_OPENAI_TOP_P int = openAITopP
-output AZURE_OPENAI_MAX_TOKENS int = openAIMaxTokens
-output AZURE_OPENAI_STOP_SEQUENCE string = openAIStopSequence
-output AZURE_OPENAI_SYSTEM_MESSAGE string = openAISystemMessage
-output AZURE_OPENAI_STREAM bool = openAIStream
 
 // cosmos
 output AZURE_COSMOSDB_ACCOUNT string = cosmos.outputs.accountName

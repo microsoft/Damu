@@ -1,22 +1,15 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: sample-app-aoai-chatgpt
+name: damu-chatapp
 metadata:
   template: sample-app-aoai-chatgpt@0.0.1-beta
 services:
   backend:
-    project: ./src/sample-app-aoai-chatGPT
-    language: py
+    project: ./src/ChatApp/ChatApp.Server
+    language: dotnet
     host: appservice
-    hooks:
-      prepackage:
-        windows:
-          shell: pwsh
-          run:  cd ./src/sample-app-aoai-chatGPT/frontend;npm install;npm run build
-          interactive: true
-          continueOnError: false
-        posix:
-          shell: sh
-          run:  cd ./src/sample-app-aoai-chatGPT/frontend;npm install;npm run build
-          interactive: true
-          continueOnError: false
+  index-function:
+    project: ./src/IndexOrchestration
+    language: dotnet
+    host: function
+    

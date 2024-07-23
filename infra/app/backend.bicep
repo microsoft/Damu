@@ -43,7 +43,7 @@ module backend '../core/host/appservice.bicep' = {
     authClientId: authClientId
     authIssuerUri: authIssuerUri
     appSettings: union(appSettings, {
-      'StorageOptions:BlobStorageConnectionString': 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value}'
+      StorageOptions__BlobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value}'
     })
   }
 }

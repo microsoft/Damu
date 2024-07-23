@@ -8,7 +8,7 @@ services:
     project: ./src/ChatApp/ChatApp.Server
     language: dotnet
     host: appservice
-  index-function:
+  indexer:
     project: ./src/IndexOrchestration
     language: dotnet
     host: function

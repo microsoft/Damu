@@ -7,7 +7,7 @@ param applicationInsightsName string = ''
 param appServicePlanName string
 @secure()
 param appSettings object = {}
-param serviceName string = 'index-function'
+param serviceName string = 'indexer'
 param storageAccountName string
 param useManagedIdentity bool
 
@@ -16,7 +16,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
 }
 
 module appServicePlanFunction '../core/host/appserviceplan.bicep' = {
-  name: 'appserviceplanApi'
+  name: 'appserviceplan-${serviceName}'
   params: {
     name: appServicePlanName
     location: location
@@ -28,7 +28,7 @@ module appServicePlanFunction '../core/host/appserviceplan.bicep' = {
   }
 }
 
-module function '../core/host/functions.bicep' = {
+module functionIndexer '../core/host/functions.bicep' = {
   name: '${serviceName}-function'
   params: {
     name: name
@@ -49,6 +49,6 @@ module function '../core/host/functions.bicep' = {
   }
 }
 
-output SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
-output SERVICE_FUNCTION_NAME string = function.outputs.name
-output SERVICE_FUNCTION_URI string = function.outputs.uri
+output SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID string = functionIndexer.outputs.identityPrincipalId
+output SERVICE_FUNCTION_NAME string = functionIndexer.outputs.name
+output SERVICE_FUNCTION_URI string = functionIndexer.outputs.uri

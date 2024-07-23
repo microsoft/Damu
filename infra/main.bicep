@@ -156,7 +156,7 @@ module backend 'app/backend.bicep' = {
   params: {
     location: location
     tags: union(tags, { 'azd-service-name': 'backend' })
-    appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}backend-${resourceToken}'
     appServiceName: appServiceName
     storageAccountName: storage.outputs.name
     authClientSecret: authClientSecret
@@ -190,15 +190,16 @@ module backend 'app/backend.bicep' = {
 }
 
 // Index Orchestrator
+var functionAppServiceName = !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}function-${resourceToken}'
 module function './app/function.bicep' = {
   name: 'function'
   scope: resourceGroup
   params: {
-    name: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}function-${resourceToken}'
+    name: functionAppServiceName
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}function-${resourceToken}'
     storageAccountName: storage.outputs.name
     useManagedIdentity: true
     appSettings: {
@@ -207,7 +208,6 @@ module function './app/function.bicep' = {
       AzureOpenAiEndpoint: openAi.outputs.endpoint
       DocIntelEndPoint: formRecognizer.outputs.endpoint
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
-      IncomingBlobConnStr: ''
       ModelDimensions: embeddingVectorDimension
       ProjectPrefix: environmentName
       SearchEndpoint: searchService.outputs.endpoint

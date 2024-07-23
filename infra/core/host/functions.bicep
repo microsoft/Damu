@@ -35,7 +35,6 @@ param appSettings object = {}
 param clientAffinityEnabled bool = false
 param enableOryxBuild bool = contains(kind, 'linux')
 param functionAppScaleLimit int = -1
-param linuxFxVersion string = runtimeNameAndVersion
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
 param scmDoBuildDuringDeployment bool = true
@@ -63,12 +62,8 @@ module functions 'appservice.bicep' = {
     functionAppScaleLimit: functionAppScaleLimit
     healthCheckPath: healthCheckPath
     kind: kind
-    linuxFxVersion: linuxFxVersion
     minimumElasticInstanceCount: minimumElasticInstanceCount
     numberOfWorkers: numberOfWorkers
-    runtimeName: runtimeName
-    runtimeVersion: runtimeVersion
-    runtimeNameAndVersion: runtimeNameAndVersion
     scmDoBuildDuringDeployment: scmDoBuildDuringDeployment
     use32BitWorkerProcess: use32BitWorkerProcess
     managedIdentity: managedIdentity

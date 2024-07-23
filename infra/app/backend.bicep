@@ -7,6 +7,7 @@ param authClientId string
 param authClientSecret string
 param authIssuerUri string
 param storageAccountName string
+param serviceName string = 'backend'
 param appSettings object = {}
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
@@ -14,7 +15,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
 }
 
 module appServicePlan '../core/host/appserviceplan.bicep' = {
-  name: 'appserviceplan'
+  name: 'appserviceplan-${serviceName}'
   params: {
     name: appServicePlanName
     location: location
@@ -28,11 +29,11 @@ module appServicePlan '../core/host/appserviceplan.bicep' = {
 }
 
 module backend '../core/host/appservice.bicep' = {
-  name: 'web'
+  name: 'web-${serviceName}'
   params: {
     name: appServiceName
     location: location
-    tags: union(tags, { 'azd-service-name': 'backend' })
+    tags: union(tags, { 'azd-service-name': serviceName })
     appServicePlanId: appServicePlan.outputs.id
     runtimeName: 'dotnet'
     runtimeVersion: '8'
@@ -42,7 +43,7 @@ module backend '../core/host/appservice.bicep' = {
     authClientId: authClientId
     authIssuerUri: authIssuerUri
     appSettings: union(appSettings, {
-      'StorageOptions:BlobStorageConnectionString': 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value}'
+      StorageOptions__BlobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value}'
     })
   }
 }

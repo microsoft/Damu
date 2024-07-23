@@ -31,13 +31,15 @@ param formRecognizerSkuName string = 'S0'
 param openAiSkuName string = ''
 
 @description('Name of the chat completion model deployment')
-param chatDeploymentName string = 'gpt-4o'
+param chatDeploymentName string = 'chat'
 
 @description('Name of the chat completion model')
 param chatModelName string = 'gpt-4o'
+param chatModelVersion string = '2024-05-13'
 
 param embeddingDeploymentName string = 'embedding'
 param embeddingModelName string = 'text-embedding-ada-002'
+param embeddingModelVersion string = '2'
 param embeddingVectorDimension int = 1536
 
 @description('Name of the storage account')
@@ -145,22 +147,6 @@ module storage 'core/storage/storage-account.bicep' = {
   }
 }
 
-// Create an App Service Plan to group applications under the same payment plan and SKU
-module appServicePlan 'core/host/appserviceplan.bicep' = {
-  name: 'appserviceplan'
-  scope: resourceGroup
-  params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
-    location: location
-    tags: tags
-    sku: {
-      name: 'B1'
-      capacity: 1
-    }
-    kind: 'windows'
-  }
-}
-
 // The application frontend
 var appServiceName = !empty(backendServiceName) ? backendServiceName : '${abbrs.webSitesAppService}backend-${resourceToken}'
 var authIssuerUri = '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
@@ -170,7 +156,7 @@ module backend 'app/backend.bicep' = {
   params: {
     location: location
     tags: union(tags, { 'azd-service-name': 'backend' })
-    appServicePlanName: appServicePlanName
+    appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}backend-${resourceToken}'
     appServiceName: appServiceName
     storageAccountName: storage.outputs.name
     authClientSecret: authClientSecret
@@ -178,41 +164,42 @@ module backend 'app/backend.bicep' = {
     authIssuerUri: authIssuerUri
     appSettings: {
       // frontend settings
-      'FrontendSettings:auth_enabled': 'false'
-      'FrontendSettings:feedback_enabled': 'false'
-      'FrontendSettings:ui:title': 'Damu'
-      'FrontendSettings:ui:chat_description': 'This chatbot is configured to answer your questions.'
-      'FrontendSettings:ui:show_share_button': true
-      'FrontendSettings:sanitize_answer': false
-      'FrontendSettings:history_enabled': isHistoryEnabled
+      FrontendSettings__auth_enabled: 'false'
+      FrontendSettings__feedback_enabled: 'false'
+      FrontendSettings__ui__title: 'Damu'
+      FrontendSettings__ui__chat_description: 'This chatbot is configured to answer your questions.'
+      FrontendSettings__ui__show_share_button: true
+      FrontendSettings__sanitize_answer: false
+      FrontendSettings__history_enabled: isHistoryEnabled
       // search
-      'AISearchOptions:Endpoint': searchService.outputs.endpoint
-      'AISearchOptions:ApiKey': ''
-      'AISearchOptions:IndexName': searchIndexName
-      'AISearchOptions:SemanticConfigurationName': searchSemanticSearchConfig
+      AISearchOptions__Endpoint: searchService.outputs.endpoint
+      AISearchOptions__ApiKey: ''
+      AISearchOptions__IndexName: searchIndexName
+      AISearchOptions__SemanticConfigurationName: searchSemanticSearchConfig
       // openai
-      'OpenAIOptions:Endpoint': openAi.outputs.endpoint
-      'OpenAIOptions:ApiKey': ''
-      'OpenAIOptions:ChatDeployment': chatDeploymentName
-      'OpenAIOptions:EmbeddingDeployment': embeddingDeploymentName
+      OpenAIOptions__Endpoint: openAi.outputs.endpoint
+      OpenAIOptions__ApiKey: ''
+      OpenAIOptions__ChatDeployment: chatDeploymentName
+      OpenAIOptions__EmbeddingDeployment: embeddingDeploymentName
       // storage
-      'StorageOptions:BlobStorageEndpoint': storage.outputs.primaryEndpoints.blob
-      'StorageOptions:BlobStorageConnectionString': ''
-      'StorageOptions:BlobStorageContainerName': storageContainerName      
+      StorageOptions__BlobStorageEndpoint: storage.outputs.primaryEndpoints.blob
+      StorageOptions__BlobStorageConnectionString: ''
+      StorageOptions__BlobStorageContainerName: storageContainerName
     }
   }
 }
 
 // Index Orchestrator
+var functionAppServiceName = !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}function-${resourceToken}'
 module function './app/function.bicep' = {
   name: 'function'
   scope: resourceGroup
   params: {
-    name: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}function-${resourceToken}'
+    name: functionAppServiceName
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
-    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    appServicePlanName: !empty(functionAppServicePlanName) ? functionAppServicePlanName : '${abbrs.webServerFarms}function-${resourceToken}'
     storageAccountName: storage.outputs.name
     useManagedIdentity: true
     appSettings: {
@@ -221,7 +208,6 @@ module function './app/function.bicep' = {
       AzureOpenAiEndpoint: openAi.outputs.endpoint
       DocIntelEndPoint: formRecognizer.outputs.endpoint
       FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated'
-      IncomingBlobConnStr: ''
       ModelDimensions: embeddingVectorDimension
       ProjectPrefix: environmentName
       SearchEndpoint: searchService.outputs.endpoint
@@ -245,7 +231,7 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
         model: {
           format: 'OpenAI'
           name: chatModelName
-          version: '2024-05-13'
+          version: chatModelVersion
         }
         capacity: 30
       }
@@ -254,7 +240,7 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
         model: {
           format: 'OpenAI'
           name: embeddingModelName
-          version: '2'
+          version: embeddingModelVersion
         }
         capacity: 30
       }
@@ -366,7 +352,7 @@ module storageRoleBackend 'core/security/role.bicep' = {
   params: {
     principalId: backend.outputs.identityPrincipalId
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -376,7 +362,7 @@ module storageRoleFunctionApp 'core/security/role.bicep' = {
   params: {
     principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-    principalType: 'User'
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -443,10 +429,5 @@ output AZURE_OPENAI_CHAT_MODEL string = chatModelName
 output AZURE_OPENAI_SKU_NAME string = openAi.outputs.skuName
 output AZURE_OPENAI_KEY string = openAi.outputs.key
 output AZURE_OPENAI_EMBEDDING_NAME string = embeddingDeploymentName
-
-// cosmos
-output AZURE_COSMOSDB_ACCOUNT string = cosmos.outputs.accountName
-output AZURE_COSMOSDB_DATABASE string = cosmos.outputs.databaseName
-output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = cosmos.outputs.containerName
 
 output AUTH_ISSUER_URI string = authIssuerUri

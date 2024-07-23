@@ -24,7 +24,6 @@ module appServicePlan '../core/host/appserviceplan.bicep' = {
       name: 'B1'
       capacity: 1
     }
-    kind: 'windows'
   }
 }
 
@@ -35,8 +34,6 @@ module backend '../core/host/appservice.bicep' = {
     location: location
     tags: union(tags, { 'azd-service-name': serviceName })
     appServicePlanId: appServicePlan.outputs.id
-    runtimeName: 'dotnet'
-    runtimeVersion: '8'
     scmDoBuildDuringDeployment: true
     managedIdentity: true
     authClientSecret: authClientSecret

@@ -155,7 +155,7 @@ module backend 'app/backend.bicep' = {
   scope: resourceGroup
   params: {
     location: location
-    tags: union(tags, { 'azd-service-name': 'backend' })
+    tags: tags
     appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}backend-${resourceToken}'
     appServiceName: appServiceName
     storageAccountName: storage.outputs.name

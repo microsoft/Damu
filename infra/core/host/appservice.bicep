@@ -8,16 +8,8 @@ param appServicePlanId string
 param keyVaultName string = ''
 param managedIdentity bool = !empty(keyVaultName)
 
-// Runtime Properties
-@allowed([
-  'dotnet', 'dotnetcore', 'dotnet-isolated', 'node', 'python', 'java', 'powershell', 'custom'
-])
-param runtimeName string
-param runtimeNameAndVersion string = '${runtimeName}|${runtimeVersion}'
-param runtimeVersion string
-
 // Microsoft.Web/sites Properties
-param kind string = 'app,linux'
+param kind string = ''
 
 // Microsoft.Web/sites/config
 param allowedOrigins array = []
@@ -31,7 +23,6 @@ param authIssuerUri string = ''
 param clientAffinityEnabled bool = false
 param enableOryxBuild bool = contains(kind, 'linux')
 param functionAppScaleLimit int = -1
-param linuxFxVersion string = runtimeNameAndVersion
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
 param scmDoBuildDuringDeployment bool = false
@@ -47,7 +38,6 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlanId
     siteConfig: {
-      linuxFxVersion: linuxFxVersion
       alwaysOn: alwaysOn
       ftpsState: ftpsState
       appCommandLine: appCommandLine

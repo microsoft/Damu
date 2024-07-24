@@ -359,7 +359,7 @@ module aiDeveloperRoleUser 'core/security/role.bicep' = {
   params: {
     principalId: principalId
     roleDefinitionId: '64702f94-c441-49e6-a78b-ef80e0188fee'
-    principalType: 'ServicePrincipal'
+    principalType: 'User'
   }
 }
 

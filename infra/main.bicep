@@ -18,8 +18,6 @@ param searchServiceName string = ''
 param searchServiceResourceGroupName string = ''
 param searchServiceResourceGroupLocation string = location
 param searchServiceSkuName string = ''
-param searchIndexName string = 'damu-index'
-param searchSemanticSearchConfig string = 'damu-semantic-config'
 
 param openAiResourceName string = ''
 param openAiResourceGroupName string = ''
@@ -345,6 +343,26 @@ module searchServiceContribRoleUser 'core/security/role.bicep' = {
   }
 }
 
+module cognitiveServicesRoleUser 'core/security/role.bicep' = {
+  scope: formRecognizerResourceGroup
+  name: 'cognitiveservices-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'User'
+  }
+}
+
+module aiDeveloperRoleUser 'core/security/role.bicep' = {
+  scope: openAiResourceGroup
+  name: 'ai-developer-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '64702f94-c441-49e6-a78b-ef80e0188fee'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // SYSTEM IDENTITIES
 module storageRoleBackend 'core/security/role.bicep' = {
   scope: storageResourceGroup
@@ -406,6 +424,56 @@ module searchRoleFunctionApp 'core/security/role.bicep' = {
   }
 }
 
+module searchServiceContribRoleFunction 'core/security/role.bicep' = {
+  scope: searchServiceResourceGroup
+  name: 'search-service-contrib-role-function'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module searchIndexDataContribRoleFunction 'core/security/role.bicep' = {
+  scope: searchServiceResourceGroup
+  name: 'search-index-data-contrib-role-function'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module cognitiveServicesRoleFunction 'core/security/role.bicep' = {
+  scope: formRecognizerResourceGroup
+  name: 'cognitiveservices-role-function'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module aiDeveloperRoleBackend 'core/security/role.bicep' = {
+  scope: openAiResourceGroup
+  name: 'ai-developer-role-backend'
+  params: {
+    principalId: backend.outputs.identityPrincipalId
+    roleDefinitionId: '64702f94-c441-49e6-a78b-ef80e0188fee'
+    principalType: 'ServicePrincipal'
+  }
+}
+
+module aiDeveloperRoleFunction 'core/security/role.bicep' = {
+  scope: openAiResourceGroup
+  name: 'ai-developer-role-function'
+  params: {
+    principalId: function.outputs.SERVICE_FUNCTION_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '64702f94-c441-49e6-a78b-ef80e0188fee'
+    principalType: 'ServicePrincipal'
+  }
+}
+
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
@@ -413,12 +481,12 @@ output AZURE_RESOURCE_GROUP string = resourceGroup.name
 output BACKEND_URI string = backend.outputs.uri
 
 // search
-output AZURE_SEARCH_INDEX string = searchIndexName
+output AZURE_SEARCH_INDEX string = '${environmentName}-index'
 output AZURE_SEARCH_SERVICE string = searchService.outputs.name
 output AZURE_SEARCH_SERVICE_RESOURCE_GROUP string = searchServiceResourceGroup.name
 output AZURE_SEARCH_SKU_NAME string = searchService.outputs.skuName
 output AZURE_SEARCH_KEY string = searchService.outputs.adminKey
-output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = searchSemanticSearchConfig
+output AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG string = '${environmentName}-semantic-config'
 
 // openai
 output AZURE_OPENAI_RESOURCE string = openAi.outputs.name

@@ -174,8 +174,8 @@ module backend 'app/backend.bicep' = {
       // search
       AISearchOptions__Endpoint: searchService.outputs.endpoint
       AISearchOptions__ApiKey: ''
-      AISearchOptions__IndexName: searchIndexName
-      AISearchOptions__SemanticConfigurationName: searchSemanticSearchConfig
+      AISearchOptions__IndexName: '${environmentName}-index'
+      AISearchOptions__SemanticConfigurationName: '${environmentName}-semantic-config'
       // openai
       OpenAIOptions__Endpoint: openAi.outputs.endpoint
       OpenAIOptions__ApiKey: ''
